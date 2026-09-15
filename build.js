@@ -12,7 +12,9 @@ const R = (p) => fs.readFileSync(path.join(__dirname, p), 'utf8');
 const head = R('src/head.html').trimEnd();
 const body = R('src/body.html').trimEnd();
 const app = R('src/app.js');
-const data = R('data/koeln.json');
+// koeln.json liegt eingerückt auf der Platte (lesbar im Diff), wird aber
+// kompakt eingebettet — sonst wäre index.html gut 1 MB statt 330 KB.
+const data = JSON.stringify(JSON.parse(R('data/koeln.json')));
 
 const payload =
   '<script>window.__KOELN__=' + data + ';</script>\n' +

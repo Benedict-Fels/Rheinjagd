@@ -1,1 +1,1719 @@
-{"stations":[{"k":"kvb","n":"Eifelplatz","x":6.94356,"y":50.92333,"u":0},{"k":"kvb","n":"Heumarkt","x":6.95915,"y":50.93556,"u":1},{"k":"kvb","n":"Deutzer Freiheit","x":6.97116,"y":50.93695,"u":0},{"k":"rail","n":"Köln Messe/Deutz (tief)","x":6.97382,"y":50.9417,"u":0},{"k":"kvb","n":"Kalker Friedhof","x":7.04268,"y":50.94267,"u":0},{"k":"kvb","n":"Merheim","x":7.04808,"y":50.94407,"u":0},{"k":"kvb","n":"Refrath","x":7.11613,"y":50.954,"u":0},{"k":"kvb","n":"Mülheim Berliner Straße","x":7.01479,"y":50.97478,"u":0},{"k":"kvb","n":"Fischenich","x":6.89766,"y":50.8647,"u":0},{"k":"kvb","n":"Arnulfstraße","x":6.93019,"y":50.91829,"u":0},{"k":"kvb","n":"Moltkestraße","x":6.93266,"y":50.93603,"u":0},{"k":"kvb","n":"Universitätsstraße","x":6.92492,"y":50.93666,"u":0},{"k":"kvb","n":"Kippekausen","x":7.12981,"y":50.95674,"u":0},{"k":"kvb","n":"Godorf","x":6.97833,"y":50.8471,"u":0},{"k":"kvb","n":"Schönhauser Straße","x":6.97189,"y":50.91435,"u":0},{"k":"kvb","n":"Ubierring","x":6.96559,"y":50.92221,"u":0},{"k":"kvb","n":"Sülzgürtel","x":6.92324,"y":50.91223,"u":0},{"k":"kvb","n":"Sülzburgstraße","x":6.92709,"y":50.91533,"u":0},{"k":"kvb","n":"Weißhausstraße","x":6.93344,"y":50.92142,"u":0},{"k":"kvb","n":"Eifelwall/Stadtarchiv","x":6.93685,"y":50.92463,"u":0},{"k":"kvb","n":"Universität","x":6.93083,"y":50.92588,"u":0},{"k":"rail","n":"Köln Messe/Deutz","x":6.97529,"y":50.94111,"u":0},{"k":"kvb","n":"Nußbaumerstraße","x":6.92368,"y":50.95708,"u":0},{"k":"kvb","n":"Subbelrather Straße/Gürtel","x":6.92142,"y":50.95483,"u":0},{"k":"kvb","n":"Gutenbergstraße","x":6.92825,"y":50.95039,"u":0},{"k":"kvb","n":"Melatengürtel","x":6.91079,"y":50.93964,"u":0},{"k":"kvb","n":"Melaten","x":6.91642,"y":50.93676,"u":0},{"k":"kvb","n":"Breslauer Platz/Hbf","x":6.95866,"y":50.94441,"u":0},{"k":"kvb","n":"Ebertplatz","x":6.95919,"y":50.95075,"u":1},{"k":"kvb","n":"Reichenspergerplatz","x":6.96489,"y":50.95427,"u":0},{"k":"kvb","n":"Boltensternstraße","x":6.98084,"y":50.96235,"u":0},{"k":"kvb","n":"Slabystraße","x":6.98792,"y":50.96664,"u":0},{"k":"kvb","n":"Zoo/Flora","x":6.97437,"y":50.9579,"u":0},{"k":"kvb","n":"Kölner Straße","x":7.14913,"y":50.96283,"u":0},{"k":"kvb","n":"Bocklemünd","x":6.87295,"y":50.96934,"u":0},{"k":"kvb","n":"Schaffrathsgasse","x":6.87022,"y":50.97164,"u":0},{"k":"kvb","n":"Hans-Böckler-Platz/Bf West","x":6.93337,"y":50.94334,"u":1},{"k":"kvb","n":"Suevenstraße","x":6.97637,"y":50.93279,"u":0},{"k":"kvb","n":"Bahnhof Deutz / LANXESS arena","x":6.97846,"y":50.93912,"u":0},{"k":"kvb","n":"Stegerwaldsiedlung","x":6.99329,"y":50.94854,"u":0},{"k":"kvb","n":"Grünstraße","x":7.00036,"y":50.95575,"u":0},{"k":"kvb","n":"Keupstraße","x":7.00684,"y":50.96623,"u":0},{"k":"kvb","n":"Von-Sparr-Straße","x":7.0114,"y":50.97046,"u":0},{"k":"kvb","n":"Im Weidenbruch","x":7.02266,"y":50.98065,"u":0},{"k":"kvb","n":"Am Emberg","x":7.03021,"y":50.98937,"u":0},{"k":"kvb","n":"Leuchterstraße","x":7.03763,"y":50.99646,"u":0},{"k":"kvb","n":"Odenthaler Straße","x":7.04233,"y":51.00126,"u":0},{"k":"kvb","n":"Schlebusch","x":7.04451,"y":51.01852,"u":0},{"k":"kvb","n":"Amsterdamer Straße/Gürtel","x":6.96912,"y":50.97091,"u":0},{"k":"kvb","n":"Neusser Straße/Gürtel","x":6.95139,"y":50.97233,"u":0},{"k":"kvb","n":"Geldernstraße/Parkgürtel","x":6.9406,"y":50.96842,"u":0},{"k":"kvb","n":"Körnerstraße","x":6.92029,"y":50.94833,"u":0},{"k":"kvb","n":"Piusstraße","x":6.92591,"y":50.94598,"u":0},{"k":"kvb","n":"Poller Kirchweg","x":6.97986,"y":50.92381,"u":0},{"k":"kvb","n":"Rudolfplatz","x":6.93954,"y":50.93618,"u":1},{"k":"kvb","n":"Maarweg","x":6.89953,"y":50.93721,"u":0},{"k":"kvb","n":"Eupener Straße","x":6.88955,"y":50.93746,"u":0},{"k":"kvb","n":"Clarenbachstift","x":6.89443,"y":50.93731,"u":0},{"k":"kvb","n":"Wolffsohnstraße","x":6.88446,"y":50.9652,"u":0},{"k":"kvb","n":"Weinsbergstraße/Gürtel","x":6.91276,"y":50.94502,"u":0},{"k":"kvb","n":"Ollenhauerring","x":6.8712,"y":50.97585,"u":0},{"k":"kvb","n":"Bf Deutz/Messe","x":6.978,"y":50.93975,"u":0},{"k":"kvb","n":"Deutz Technische Hochschule","x":6.98524,"y":50.93677,"u":1},{"k":"kvb","n":"Fordwerke Mitte","x":6.95542,"y":51.01187,"u":0},{"k":"kvb","n":"Fordwerke Süd","x":6.95541,"y":51.00585,"u":0},{"k":"kvb","n":"Rosenhügel","x":7.06006,"y":50.87419,"u":0},{"k":"kvb","n":"Porz Markt","x":7.05869,"y":50.88511,"u":0},{"k":"kvb","n":"Gilgaustraße","x":7.03121,"y":50.89963,"u":0},{"k":"kvb","n":"Westhoven, Kölner Straße","x":7.01498,"y":50.90657,"u":0},{"k":"kvb","n":"Westhoven Berliner Straße","x":7.02548,"y":50.90138,"u":0},{"k":"rail","n":"Dormagen Chempark","x":6.83824,"y":51.0769,"u":0},{"k":"kvb","n":"Barbarossaplatz","x":6.94267,"y":50.929,"u":0},{"k":"kvb","n":"Eifelstraße","x":6.94579,"y":50.92663,"u":0},{"k":"kvb","n":"Ulrepforte","x":6.95181,"y":50.92413,"u":0},{"k":"kvb","n":"Frechen-Benzelrath","x":6.79735,"y":50.90418,"u":1},{"k":"kvb","n":"Mohnweg","x":6.85516,"y":50.93797,"u":0},{"k":"kvb","n":"Bahnstraße","x":6.84499,"y":50.93814,"u":0},{"k":"kvb","n":"Aachener Straße/Gürtel","x":6.90846,"y":50.93702,"u":0},{"k":"kvb","n":"Dürener Straße/Gürtel","x":6.90863,"y":50.92841,"u":0},{"k":"kvb","n":"Königsforst","x":7.0962,"y":50.91988,"u":0},{"k":"kvb","n":"Röttgensweg","x":7.09041,"y":50.92031,"u":0},{"k":"kvb","n":"Rath/Heumar","x":7.08134,"y":50.92046,"u":0},{"k":"kvb","n":"Florastraße","x":6.95371,"y":50.9645,"u":1},{"k":"kvb","n":"Steinstraße","x":7.05613,"y":50.89179,"u":0},{"k":"kvb","n":"Merkenich Mitte","x":6.95339,"y":51.02417,"u":0},{"k":"kvb","n":"Buchheim Herler Straße","x":7.0251,"y":50.95793,"u":0},{"k":"kvb","n":"Sülz Hermeskeiler Platz","x":6.90726,"y":50.91713,"u":0},{"k":"kvb","n":"Bahnhof Mülheim","x":7.01254,"y":50.95708,"u":0},{"k":"kvb","n":"Heimersdorf","x":6.90674,"y":51.012,"u":0},{"k":"kvb","n":"Meerfeldstraße","x":6.92079,"y":50.99512,"u":0},{"k":"kvb","n":"Altonaer Platz","x":6.93329,"y":50.99388,"u":0},{"k":"kvb","n":"Wilhelm-Sollmann-Straße","x":6.94124,"y":50.99188,"u":0},{"k":"kvb","n":"Niehl Nord","x":6.95542,"y":50.99516,"u":0},{"k":"kvb","n":"Geestemünder Straße","x":6.95533,"y":51.00209,"u":0},{"k":"kvb","n":"Liebigstraße","x":6.92506,"y":50.95188,"u":0},{"k":"kvb","n":"Pohligstraße","x":6.94146,"y":50.91652,"u":0},{"k":"kvb","n":"Wichheimer Straße","x":7.03123,"y":50.96152,"u":0},{"k":"kvb","n":"Vischeringstraße","x":7.0384,"y":50.96653,"u":0},{"k":"kvb","n":"Maria-Himmelfahrt-Straße","x":7.04452,"y":50.96785,"u":0},{"k":"kvb","n":"Rhein Energie Stadion","x":6.87771,"y":50.93697,"u":0},{"k":"kvb","n":"Kinderkrankenhaus","x":6.96845,"y":50.96334,"u":0},{"k":"kvb","n":"Niehl Sebastianstraße","x":6.96176,"y":50.98496,"u":0},{"k":"kvb","n":"Ensen Kloster","x":7.04724,"y":50.89716,"u":0},{"k":"kvb","n":"Nesselrodestraße","x":6.96887,"y":50.97707,"u":0},{"k":"kvb","n":"Fordwerke Nord","x":6.95543,"y":51.01749,"u":0},{"k":"kvb","n":"Merkenich","x":6.94814,"y":51.02808,"u":0},{"k":"kvb","n":"Stüttgenhof","x":6.87715,"y":50.92007,"u":0},{"k":"kvb","n":"Neufelder Straße/Krankenhaus Holweide","x":7.05562,"y":50.96958,"u":0},{"k":"kvb","n":"Dellbrück Mauspfad","x":7.06489,"y":50.97189,"u":0},{"k":"kvb","n":"Severinsbrücke","x":6.97215,"y":50.93083,"u":0},{"k":"kvb","n":"Neuenweg","x":7.14259,"y":50.96335,"u":0},{"k":"kvb","n":"Im Hoppenkamp","x":7.15638,"y":50.96305,"u":0},{"k":"kvb","n":"Hansaring","x":6.95141,"y":50.94869,"u":1},{"k":"kvb","n":"Westfriedhof","x":6.87848,"y":50.96745,"u":0},{"k":"kvb","n":"Zollstockgürtel","x":6.94206,"y":50.90555,"u":0},{"k":"kvb","n":"Gottesweg","x":6.94146,"y":50.91011,"u":0},{"k":"kvb","n":"Zülpicher Platz","x":6.94061,"y":50.93135,"u":0},{"k":"kvb","n":"Poststraße","x":6.95004,"y":50.93167,"u":0},{"k":"kvb","n":"Neumarkt","x":6.94822,"y":50.93557,"u":0},{"k":"kvb","n":"Weiden West","x":6.81592,"y":50.94039,"u":0},{"k":"rail","n":"Thermalbad","x":6.98062,"y":50.95076,"u":0},{"k":"rail","n":"Rosengarten","x":6.97921,"y":50.95174,"u":0},{"k":"rail","n":"Tanzbrunnen","x":6.97256,"y":50.9472,"u":0},{"k":"kvb","n":"Kalk Post","x":6.99832,"y":50.93752,"u":1},{"k":"kvb","n":"Fuldaer Straße","x":7.0225,"y":50.94158,"u":0},{"k":"kvb","n":"Kalk Kapelle","x":7.00811,"y":50.9388,"u":1},{"k":"kvb","n":"Sportpark Höhenberg","x":7.02918,"y":50.94176,"u":0},{"k":"kvb","n":"Vingst","x":7.02166,"y":50.93278,"u":0},{"k":"kvb","n":"Scheibenstraße","x":6.94636,"y":50.98566,"u":0},{"k":"kvb","n":"Severinstraße","x":6.95704,"y":50.92911,"u":0},{"k":"kvb","n":"Berrenrather Straße/Gürtel","x":6.9205,"y":50.91454,"u":0},{"k":"kvb","n":"Euskirchener Straße","x":6.91738,"y":50.91686,"u":0},{"k":"kvb","n":"Mommsenstraße","x":6.91021,"y":50.91909,"u":0},{"k":"kvb","n":"Zülpicher Straße/Gürtel","x":6.91521,"y":50.92031,"u":0},{"k":"kvb","n":"Wüllnerstraße","x":6.908,"y":50.9312,"u":0},{"k":"kvb","n":"Gleueler Straße/Gürtel","x":6.91189,"y":50.92418,"u":0},{"k":"kvb","n":"Longerich Friedhof","x":6.91131,"y":50.99561,"u":0},{"k":"kvb","n":"Longericher Straße","x":6.91494,"y":50.99603,"u":0},{"k":"kvb","n":"Christophstraße/Mediapark","x":6.94258,"y":50.94485,"u":1},{"k":"kvb","n":"Escher Straße","x":6.93375,"y":50.96459,"u":0},{"k":"kvb","n":"Koelnmesse","x":6.98208,"y":50.94348,"u":0},{"k":"kvb","n":"Lohsestraße","x":6.95527,"y":50.95813,"u":1},{"k":"kvb","n":"Mollwitzstraße","x":6.94882,"y":50.9782,"u":0},{"k":"kvb","n":"Chlodwigplatz","x":7.00372,"y":50.86198,"u":0},{"k":"kvb","n":"Frechen Mühlengasse","x":6.80193,"y":50.90823,"u":0},{"k":"kvb","n":"Frechen Rathaus","x":6.80615,"y":50.90943,"u":0},{"k":"kvb","n":"Frechen Bahnhof","x":6.82281,"y":50.91151,"u":1},{"k":"kvb","n":"Zollstock Südfriedhof","x":6.94446,"y":50.90091,"u":0},{"k":"kvb","n":"Weiden Zentrum","x":6.83524,"y":50.93825,"u":0},{"k":"kvb","n":"Weiden Römergrab","x":6.82863,"y":50.93836,"u":0},{"k":"kvb","n":"Junkersdorf","x":6.869,"y":50.93767,"u":0},{"k":"kvb","n":"Alter Militärring","x":6.88148,"y":50.93772,"u":0},{"k":"rail","n":"Hürth-Kalscheuren","x":6.91017,"y":50.8765,"u":0},{"k":"kvb","n":"Alter Flughafen Butzweilerhof","x":6.89829,"y":50.97751,"u":0},{"k":"kvb","n":"Marktstraße","x":6.96228,"y":50.91193,"u":0},{"k":"kvb","n":"Rathaus","x":6.9596,"y":50.93828,"u":1},{"k":"kvb","n":"Appellhofplatz","x":6.95052,"y":50.94041,"u":0},{"k":"kvb","n":"Sparkasse Am Butzweilerhof","x":6.88839,"y":50.98472,"u":0},{"k":"kvb","n":"Chorweiler","x":6.89802,"y":51.02065,"u":0},{"k":"kvb","n":"Herthastraße","x":6.94079,"y":50.91297,"u":0},{"k":"kvb","n":"Rheinenergie-Stadion","x":6.87466,"y":50.93761,"u":0},{"k":"kvb","n":"Raiffeisenstraße","x":6.98605,"y":50.91994,"u":0},{"k":"kvb","n":"Uniklinik Köln","x":6.92179,"y":50.92229,"u":0},{"k":"kvb","n":"IKEA Am Butzweilerhof","x":6.89433,"y":50.98197,"u":0},{"k":"kvb","n":"Dellbrück Hauptstraße","x":7.07483,"y":50.97482,"u":0},{"k":"rail","n":"Köln Airport-Businesspark","x":7.04472,"y":50.91024,"u":0},{"k":"kvb","n":"Thielenbruch","x":7.08551,"y":50.97803,"u":0},{"k":"kvb","n":"Mülheim Wiener Platz","x":7.00454,"y":50.96168,"u":0},{"k":"kvb","n":"Dom/Hbf","x":6.95721,"y":50.9418,"u":0},{"k":"kvb","n":"Klettenbergpark","x":6.91956,"y":50.90814,"u":1},{"k":"kvb","n":"Ostheim","x":7.04201,"y":50.92919,"u":0},{"k":"kvb","n":"Poll Salmstraße","x":6.99279,"y":50.916,"u":0},{"k":"kvb","n":"Buchheim Frankfurter Straße","x":7.01453,"y":50.9533,"u":0},{"k":"rail","n":"Köln Geldernstraße/Parkgürtel","x":6.94135,"y":50.9685,"u":0},{"k":"kvb","n":"Autobahn (Stadtbahn)","x":7.05381,"y":50.92715,"u":0},{"k":"kvb","n":"Flehbachstraße","x":7.07318,"y":50.94777,"u":0},{"k":"kvb","n":"Brück Mauspfad","x":7.07812,"y":50.94881,"u":0},{"k":"kvb","n":"Porzer Straße","x":7.07508,"y":50.92164,"u":0},{"k":"rail","n":"Köln-Mülheim","x":7.01353,"y":50.95815,"u":0},{"k":"kvb","n":"Rochusplatz","x":6.9027,"y":50.95684,"u":0},{"k":"kvb","n":"Lenauplatz","x":6.91823,"y":50.95888,"u":0},{"k":"kvb","n":"Iltisstraße","x":6.91259,"y":50.96478,"u":0},{"k":"kvb","n":"Margaretastraße","x":6.90542,"y":50.96856,"u":0},{"k":"kvb","n":"Rektor-Klein-Straße","x":6.90476,"y":50.97374,"u":0},{"k":"kvb","n":"Leyendeckerstraße","x":6.90922,"y":50.95468,"u":0},{"k":"kvb","n":"Bayenthalgürtel","x":6.97777,"y":50.90689,"u":0},{"k":"kvb","n":"Heinrich-Lübke-Ufer","x":6.98485,"y":50.89982,"u":0},{"k":"kvb","n":"Herforder Straße","x":6.92531,"y":50.99465,"u":0},{"k":"kvb","n":"Venloer Straße/Gürtel","x":6.91626,"y":50.95025,"u":0},{"k":"kvb","n":"Friesenplatz","x":6.93992,"y":50.94057,"u":1},{"k":"kvb","n":"Lustheide","x":7.10477,"y":50.95192,"u":0},{"k":"kvb","n":"Hürth-Hermülheim","x":6.89462,"y":50.88036,"u":0},{"k":"kvb","n":"Michaelshoven","x":6.99908,"y":50.87597,"u":0},{"k":"kvb","n":"Rodenkirchen Bahnhof","x":6.99012,"y":50.89081,"u":0},{"k":"kvb","n":"Siegstraße","x":6.99464,"y":50.88334,"u":0},{"k":"kvb","n":"Sürth Bahnhof","x":7.0037,"y":50.86452,"u":0},{"k":"kvb","n":"Haus Vorst","x":6.84859,"y":50.91571,"u":0},{"k":"kvb","n":"Zündorf","x":7.04902,"y":50.86607,"u":0},{"k":"kvb","n":"Drehbrücke","x":6.97498,"y":50.92845,"u":0},{"k":"kvb","n":"Marsdorf","x":6.85818,"y":50.91749,"u":0},{"k":"rail","n":"Köln Hauptbahnhof","x":6.95907,"y":50.94278,"u":0},{"k":"rail","n":"Köln Hansaring","x":6.95264,"y":50.94908,"u":0},{"k":"rail","n":"Köln West","x":6.93285,"y":50.94217,"u":0},{"k":"kvb","n":"Bensberg U","x":7.16153,"y":50.96371,"u":0},{"k":"rail","n":"Köln-Longerich","x":6.90148,"y":50.99824,"u":0},{"k":"rail","n":"Köln-Stammheim","x":7.00189,"y":50.99004,"u":0},{"k":"kvb","n":"Baumschulenweg","x":6.99997,"y":50.91488,"u":0},{"k":"rail","n":"Köln Steinstraße","x":7.05762,"y":50.89528,"u":0},{"k":"rail","n":"Köln Süd","x":6.93727,"y":50.9276,"u":0},{"k":"rail","n":"Köln-Worringen","x":6.85208,"y":51.05217,"u":0},{"k":"kvb","n":"Weyertal","x":6.92699,"y":50.92405,"u":0},{"k":"rail","n":"Köln Frankfurter Straße","x":7.05153,"y":50.91542,"u":0},{"k":"kvb","n":"Dasselstraße/Bf Süd","x":6.93573,"y":50.92825,"u":0},{"k":"kvb","n":"Mauritiuskirche","x":6.94507,"y":50.93421,"u":0},{"k":"kvb","n":"Frankenforst","x":7.13683,"y":50.96084,"u":0},{"k":"kvb","n":"Steinweg","x":7.06681,"y":50.92365,"u":0},{"k":"kvb","n":"Frechen Kirche","x":6.81583,"y":50.91008,"u":0},{"k":"rail","n":"Köln Trimbornstraße","x":6.99687,"y":50.93588,"u":0},{"k":"rail","n":"Köln-Blumenberg","x":6.88198,"y":51.0374,"u":0},{"k":"rail","n":"Köln-Chorweiler Nord","x":6.89286,"y":51.02803,"u":0},{"k":"rail","n":"Köln-Chorweiler","x":6.89803,"y":51.02117,"u":0},{"k":"kvb","n":"Bonner Wall","x":6.96105,"y":50.91617,"u":0},{"k":"kvb","n":"Kartäuserhof","x":6.95845,"y":50.9251,"u":1},{"k":"kvb","n":"Brahmsstraße","x":6.89841,"y":50.926,"u":0},{"k":"kvb","n":"Waldecker Straße","x":7.00524,"y":50.95108,"u":0},{"k":"rail","n":"Porz (Rhein)","x":7.06449,"y":50.88327,"u":0},{"k":"rail","n":"Köln-Ehrenfeld","x":6.91653,"y":50.9515,"u":0},{"k":"rail","n":"Köln-Müngersdorf/Technologiepark","x":6.88843,"y":50.94842,"u":0},{"k":"rail","n":"Lövenich","x":6.83443,"y":50.94288,"u":0},{"k":"rail","n":"Köln-Weiden West","x":6.8151,"y":50.94085,"u":0},{"k":"rail","n":"Porz-Wahn","x":7.07923,"y":50.85816,"u":0},{"k":"rail","n":"Köln Volkhovener Weg","x":6.89321,"y":51.01409,"u":0},{"k":"rail","n":"Köln-Nippes","x":6.94178,"y":50.95899,"u":0},{"k":"rail","n":"Köln-Holweide","x":7.04111,"y":50.97622,"u":0},{"k":"rail","n":"Köln-Buchforst","x":7.0043,"y":50.95353,"u":0},{"k":"rail","n":"Köln-Dellbrück","x":7.07024,"y":50.98148,"u":0},{"k":"rail","n":"Duckterath","x":7.10355,"y":50.98476,"u":0},{"k":"rail","n":"Bergisch Gladbach","x":7.12378,"y":50.99087,"u":0},{"k":"kvb","n":"Bensberg","x":7.16157,"y":50.96369,"u":0},{"k":"kvb","n":"Akazienweg","x":6.89407,"y":50.96062,"u":1},{"k":"rail","n":"Heimersdorf","x":6.90679,"y":51.01195,"u":0},{"k":"kvb","n":"Christophstraße / Mediapark","x":6.94252,"y":50.9448,"u":1},{"k":"kvb","n":"Görlinger-Zentrum","x":6.87047,"y":50.98055,"u":0},{"k":"kvb","n":"Kiebitzweg","x":6.89709,"y":50.88802,"u":0},{"k":"kvb","n":"Efferen","x":6.90404,"y":50.89447,"u":0}]}
+{
+    "stations": [
+        {
+            "k": "kvb",
+            "n": "Eifelplatz",
+            "x": 6.94356,
+            "y": 50.92333,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Heumarkt",
+            "x": 6.95915,
+            "y": 50.93556,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Deutzer Freiheit",
+            "x": 6.97116,
+            "y": 50.93695,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln Messe/Deutz (tief)",
+            "x": 6.97382,
+            "y": 50.9417,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Kalker Friedhof",
+            "x": 7.04268,
+            "y": 50.94267,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Merheim",
+            "x": 7.04808,
+            "y": 50.94407,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Refrath",
+            "x": 7.11613,
+            "y": 50.954,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Mülheim Berliner Straße",
+            "x": 7.01479,
+            "y": 50.97478,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Fischenich",
+            "x": 6.89766,
+            "y": 50.8647,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Arnulfstraße",
+            "x": 6.93019,
+            "y": 50.91829,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Moltkestraße",
+            "x": 6.93266,
+            "y": 50.93603,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Universitätsstraße",
+            "x": 6.92492,
+            "y": 50.93666,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Kippekausen",
+            "x": 7.12981,
+            "y": 50.95674,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Godorf",
+            "x": 6.97833,
+            "y": 50.8471,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Schönhauser Straße",
+            "x": 6.97189,
+            "y": 50.91435,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Ubierring",
+            "x": 6.96559,
+            "y": 50.92221,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Sülzgürtel",
+            "x": 6.92324,
+            "y": 50.91223,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Sülzburgstraße",
+            "x": 6.92709,
+            "y": 50.91533,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Weißhausstraße",
+            "x": 6.93344,
+            "y": 50.92142,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Eifelwall/Stadtarchiv",
+            "x": 6.93685,
+            "y": 50.92463,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Universität",
+            "x": 6.93083,
+            "y": 50.92588,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln Messe/Deutz",
+            "x": 6.97529,
+            "y": 50.94111,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Nußbaumerstraße",
+            "x": 6.92368,
+            "y": 50.95708,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Subbelrather Straße/Gürtel",
+            "x": 6.92142,
+            "y": 50.95483,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Gutenbergstraße",
+            "x": 6.92825,
+            "y": 50.95039,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Melatengürtel",
+            "x": 6.91079,
+            "y": 50.93964,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Melaten",
+            "x": 6.91642,
+            "y": 50.93676,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Breslauer Platz/Hbf",
+            "x": 6.95866,
+            "y": 50.94441,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Ebertplatz",
+            "x": 6.95919,
+            "y": 50.95075,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Reichenspergerplatz",
+            "x": 6.96489,
+            "y": 50.95427,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Boltensternstraße",
+            "x": 6.98084,
+            "y": 50.96235,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Slabystraße",
+            "x": 6.98792,
+            "y": 50.96664,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Zoo/Flora",
+            "x": 6.97437,
+            "y": 50.9579,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Kölner Straße",
+            "x": 7.14913,
+            "y": 50.96283,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Bocklemünd",
+            "x": 6.87295,
+            "y": 50.96934,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Schaffrathsgasse",
+            "x": 6.87022,
+            "y": 50.97164,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Hans-Böckler-Platz/Bf West",
+            "x": 6.93337,
+            "y": 50.94334,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Suevenstraße",
+            "x": 6.97637,
+            "y": 50.93279,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Bahnhof Deutz / LANXESS arena",
+            "x": 6.97846,
+            "y": 50.93912,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Stegerwaldsiedlung",
+            "x": 6.99329,
+            "y": 50.94854,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Grünstraße",
+            "x": 7.00036,
+            "y": 50.95575,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Keupstraße",
+            "x": 7.00684,
+            "y": 50.96623,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Von-Sparr-Straße",
+            "x": 7.0114,
+            "y": 50.97046,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Im Weidenbruch",
+            "x": 7.02266,
+            "y": 50.98065,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Am Emberg",
+            "x": 7.03021,
+            "y": 50.98937,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Leuchterstraße",
+            "x": 7.03763,
+            "y": 50.99646,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Odenthaler Straße",
+            "x": 7.04233,
+            "y": 51.00126,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Schlebusch",
+            "x": 7.04451,
+            "y": 51.01852,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Amsterdamer Straße/Gürtel",
+            "x": 6.96912,
+            "y": 50.97091,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Neusser Straße/Gürtel",
+            "x": 6.95139,
+            "y": 50.97233,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Geldernstraße/Parkgürtel",
+            "x": 6.9406,
+            "y": 50.96842,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Körnerstraße",
+            "x": 6.92029,
+            "y": 50.94833,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Piusstraße",
+            "x": 6.92591,
+            "y": 50.94598,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Poller Kirchweg",
+            "x": 6.97986,
+            "y": 50.92381,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Rudolfplatz",
+            "x": 6.93954,
+            "y": 50.93618,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Maarweg",
+            "x": 6.89953,
+            "y": 50.93721,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Eupener Straße",
+            "x": 6.88955,
+            "y": 50.93746,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Clarenbachstift",
+            "x": 6.89443,
+            "y": 50.93731,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Wolffsohnstraße",
+            "x": 6.88446,
+            "y": 50.9652,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Weinsbergstraße/Gürtel",
+            "x": 6.91276,
+            "y": 50.94502,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Ollenhauerring",
+            "x": 6.8712,
+            "y": 50.97585,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Bf Deutz/Messe",
+            "x": 6.978,
+            "y": 50.93975,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Deutz Technische Hochschule",
+            "x": 6.98524,
+            "y": 50.93677,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Fordwerke Mitte",
+            "x": 6.95542,
+            "y": 51.01187,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Fordwerke Süd",
+            "x": 6.95541,
+            "y": 51.00585,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Rosenhügel",
+            "x": 7.06006,
+            "y": 50.87419,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Porz Markt",
+            "x": 7.05869,
+            "y": 50.88511,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Gilgaustraße",
+            "x": 7.03121,
+            "y": 50.89963,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Westhoven, Kölner Straße",
+            "x": 7.01498,
+            "y": 50.90657,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Westhoven Berliner Straße",
+            "x": 7.02548,
+            "y": 50.90138,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Dormagen Chempark",
+            "x": 6.83824,
+            "y": 51.0769,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Barbarossaplatz",
+            "x": 6.94267,
+            "y": 50.929,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Eifelstraße",
+            "x": 6.94579,
+            "y": 50.92663,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Ulrepforte",
+            "x": 6.95181,
+            "y": 50.92413,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Frechen-Benzelrath",
+            "x": 6.79735,
+            "y": 50.90418,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Mohnweg",
+            "x": 6.85516,
+            "y": 50.93797,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Bahnstraße",
+            "x": 6.84499,
+            "y": 50.93814,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Aachener Straße/Gürtel",
+            "x": 6.90846,
+            "y": 50.93702,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Dürener Straße/Gürtel",
+            "x": 6.90863,
+            "y": 50.92841,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Königsforst",
+            "x": 7.0962,
+            "y": 50.91988,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Röttgensweg",
+            "x": 7.09041,
+            "y": 50.92031,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Rath/Heumar",
+            "x": 7.08134,
+            "y": 50.92046,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Florastraße",
+            "x": 6.95371,
+            "y": 50.9645,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Steinstraße",
+            "x": 7.05613,
+            "y": 50.89179,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Merkenich Mitte",
+            "x": 6.95339,
+            "y": 51.02417,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Buchheim Herler Straße",
+            "x": 7.0251,
+            "y": 50.95793,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Sülz Hermeskeiler Platz",
+            "x": 6.90726,
+            "y": 50.91713,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Bahnhof Mülheim",
+            "x": 7.01254,
+            "y": 50.95708,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Heimersdorf",
+            "x": 6.90674,
+            "y": 51.012,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Meerfeldstraße",
+            "x": 6.92079,
+            "y": 50.99512,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Altonaer Platz",
+            "x": 6.93329,
+            "y": 50.99388,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Wilhelm-Sollmann-Straße",
+            "x": 6.94124,
+            "y": 50.99188,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Niehl Nord",
+            "x": 6.95542,
+            "y": 50.99516,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Geestemünder Straße",
+            "x": 6.95533,
+            "y": 51.00209,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Liebigstraße",
+            "x": 6.92506,
+            "y": 50.95188,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Pohligstraße",
+            "x": 6.94146,
+            "y": 50.91652,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Wichheimer Straße",
+            "x": 7.03123,
+            "y": 50.96152,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Vischeringstraße",
+            "x": 7.0384,
+            "y": 50.96653,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Maria-Himmelfahrt-Straße",
+            "x": 7.04452,
+            "y": 50.96785,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Rhein Energie Stadion",
+            "x": 6.87771,
+            "y": 50.93697,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Kinderkrankenhaus",
+            "x": 6.96845,
+            "y": 50.96334,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Niehl Sebastianstraße",
+            "x": 6.96176,
+            "y": 50.98496,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Ensen Kloster",
+            "x": 7.04724,
+            "y": 50.89716,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Nesselrodestraße",
+            "x": 6.96887,
+            "y": 50.97707,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Fordwerke Nord",
+            "x": 6.95543,
+            "y": 51.01749,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Merkenich",
+            "x": 6.94814,
+            "y": 51.02808,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Stüttgenhof",
+            "x": 6.87715,
+            "y": 50.92007,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Neufelder Straße/Krankenhaus Holweide",
+            "x": 7.05562,
+            "y": 50.96958,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Dellbrück Mauspfad",
+            "x": 7.06489,
+            "y": 50.97189,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Severinsbrücke",
+            "x": 6.97215,
+            "y": 50.93083,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Neuenweg",
+            "x": 7.14259,
+            "y": 50.96335,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Im Hoppenkamp",
+            "x": 7.15638,
+            "y": 50.96305,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Hansaring",
+            "x": 6.95141,
+            "y": 50.94869,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Westfriedhof",
+            "x": 6.87848,
+            "y": 50.96745,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Zollstockgürtel",
+            "x": 6.94206,
+            "y": 50.90555,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Gottesweg",
+            "x": 6.94146,
+            "y": 50.91011,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Zülpicher Platz",
+            "x": 6.94061,
+            "y": 50.93135,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Poststraße",
+            "x": 6.95004,
+            "y": 50.93167,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Neumarkt",
+            "x": 6.94822,
+            "y": 50.93557,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Weiden West",
+            "x": 6.81592,
+            "y": 50.94039,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Thermalbad",
+            "x": 6.98062,
+            "y": 50.95076,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Rosengarten",
+            "x": 6.97921,
+            "y": 50.95174,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Tanzbrunnen",
+            "x": 6.97256,
+            "y": 50.9472,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Kalk Post",
+            "x": 6.99832,
+            "y": 50.93752,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Fuldaer Straße",
+            "x": 7.0225,
+            "y": 50.94158,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Kalk Kapelle",
+            "x": 7.00811,
+            "y": 50.9388,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Sportpark Höhenberg",
+            "x": 7.02918,
+            "y": 50.94176,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Vingst",
+            "x": 7.02166,
+            "y": 50.93278,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Scheibenstraße",
+            "x": 6.94636,
+            "y": 50.98566,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Severinstraße",
+            "x": 6.95704,
+            "y": 50.92911,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Berrenrather Straße/Gürtel",
+            "x": 6.9205,
+            "y": 50.91454,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Euskirchener Straße",
+            "x": 6.91738,
+            "y": 50.91686,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Mommsenstraße",
+            "x": 6.91021,
+            "y": 50.91909,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Zülpicher Straße/Gürtel",
+            "x": 6.91521,
+            "y": 50.92031,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Wüllnerstraße",
+            "x": 6.908,
+            "y": 50.9312,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Gleueler Straße/Gürtel",
+            "x": 6.91189,
+            "y": 50.92418,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Longerich Friedhof",
+            "x": 6.91131,
+            "y": 50.99561,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Longericher Straße",
+            "x": 6.91494,
+            "y": 50.99603,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Christophstraße/Mediapark",
+            "x": 6.94258,
+            "y": 50.94485,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Escher Straße",
+            "x": 6.93375,
+            "y": 50.96459,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Koelnmesse",
+            "x": 6.98208,
+            "y": 50.94348,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Lohsestraße",
+            "x": 6.95527,
+            "y": 50.95813,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Mollwitzstraße",
+            "x": 6.94882,
+            "y": 50.9782,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Chlodwigplatz",
+            "x": 7.00372,
+            "y": 50.86198,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Frechen Mühlengasse",
+            "x": 6.80193,
+            "y": 50.90823,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Frechen Rathaus",
+            "x": 6.80615,
+            "y": 50.90943,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Frechen Bahnhof",
+            "x": 6.82281,
+            "y": 50.91151,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Zollstock Südfriedhof",
+            "x": 6.94446,
+            "y": 50.90091,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Weiden Zentrum",
+            "x": 6.83524,
+            "y": 50.93825,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Weiden Römergrab",
+            "x": 6.82863,
+            "y": 50.93836,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Junkersdorf",
+            "x": 6.869,
+            "y": 50.93767,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Alter Militärring",
+            "x": 6.88148,
+            "y": 50.93772,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Hürth-Kalscheuren",
+            "x": 6.91017,
+            "y": 50.8765,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Alter Flughafen Butzweilerhof",
+            "x": 6.89829,
+            "y": 50.97751,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Marktstraße",
+            "x": 6.96228,
+            "y": 50.91193,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Rathaus",
+            "x": 6.9596,
+            "y": 50.93828,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Appellhofplatz",
+            "x": 6.95052,
+            "y": 50.94041,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Sparkasse Am Butzweilerhof",
+            "x": 6.88839,
+            "y": 50.98472,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Chorweiler",
+            "x": 6.89802,
+            "y": 51.02065,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Herthastraße",
+            "x": 6.94079,
+            "y": 50.91297,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Rheinenergie-Stadion",
+            "x": 6.87466,
+            "y": 50.93761,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Raiffeisenstraße",
+            "x": 6.98605,
+            "y": 50.91994,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Uniklinik Köln",
+            "x": 6.92179,
+            "y": 50.92229,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "IKEA Am Butzweilerhof",
+            "x": 6.89433,
+            "y": 50.98197,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Dellbrück Hauptstraße",
+            "x": 7.07483,
+            "y": 50.97482,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln Airport-Businesspark",
+            "x": 7.04472,
+            "y": 50.91024,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Thielenbruch",
+            "x": 7.08551,
+            "y": 50.97803,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Mülheim Wiener Platz",
+            "x": 7.00454,
+            "y": 50.96168,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Dom/Hbf",
+            "x": 6.95721,
+            "y": 50.9418,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Klettenbergpark",
+            "x": 6.91956,
+            "y": 50.90814,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Ostheim",
+            "x": 7.04201,
+            "y": 50.92919,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Poll Salmstraße",
+            "x": 6.99279,
+            "y": 50.916,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Buchheim Frankfurter Straße",
+            "x": 7.01453,
+            "y": 50.9533,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln Geldernstraße/Parkgürtel",
+            "x": 6.94135,
+            "y": 50.9685,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Autobahn (Stadtbahn)",
+            "x": 7.05381,
+            "y": 50.92715,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Flehbachstraße",
+            "x": 7.07318,
+            "y": 50.94777,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Brück Mauspfad",
+            "x": 7.07812,
+            "y": 50.94881,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Porzer Straße",
+            "x": 7.07508,
+            "y": 50.92164,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln-Mülheim",
+            "x": 7.01353,
+            "y": 50.95815,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Rochusplatz",
+            "x": 6.9027,
+            "y": 50.95684,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Lenauplatz",
+            "x": 6.91823,
+            "y": 50.95888,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Iltisstraße",
+            "x": 6.91259,
+            "y": 50.96478,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Margaretastraße",
+            "x": 6.90542,
+            "y": 50.96856,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Rektor-Klein-Straße",
+            "x": 6.90476,
+            "y": 50.97374,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Leyendeckerstraße",
+            "x": 6.90922,
+            "y": 50.95468,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Bayenthalgürtel",
+            "x": 6.97777,
+            "y": 50.90689,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Heinrich-Lübke-Ufer",
+            "x": 6.98485,
+            "y": 50.89982,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Herforder Straße",
+            "x": 6.92531,
+            "y": 50.99465,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Venloer Straße/Gürtel",
+            "x": 6.91626,
+            "y": 50.95025,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Friesenplatz",
+            "x": 6.93992,
+            "y": 50.94057,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Lustheide",
+            "x": 7.10477,
+            "y": 50.95192,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Hürth-Hermülheim",
+            "x": 6.89462,
+            "y": 50.88036,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Michaelshoven",
+            "x": 6.99908,
+            "y": 50.87597,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Rodenkirchen Bahnhof",
+            "x": 6.99012,
+            "y": 50.89081,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Siegstraße",
+            "x": 6.99464,
+            "y": 50.88334,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Sürth Bahnhof",
+            "x": 7.0037,
+            "y": 50.86452,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Haus Vorst",
+            "x": 6.84859,
+            "y": 50.91571,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Zündorf",
+            "x": 7.04902,
+            "y": 50.86607,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Drehbrücke",
+            "x": 6.97498,
+            "y": 50.92845,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Marsdorf",
+            "x": 6.85818,
+            "y": 50.91749,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln Hauptbahnhof",
+            "x": 6.95907,
+            "y": 50.94278,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln Hansaring",
+            "x": 6.95264,
+            "y": 50.94908,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln West",
+            "x": 6.93285,
+            "y": 50.94217,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Bensberg U",
+            "x": 7.16153,
+            "y": 50.96371,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln-Longerich",
+            "x": 6.90148,
+            "y": 50.99824,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln-Stammheim",
+            "x": 7.00189,
+            "y": 50.99004,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Baumschulenweg",
+            "x": 6.99997,
+            "y": 50.91488,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln Steinstraße",
+            "x": 7.05762,
+            "y": 50.89528,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln Süd",
+            "x": 6.93727,
+            "y": 50.9276,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln-Worringen",
+            "x": 6.85208,
+            "y": 51.05217,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Weyertal",
+            "x": 6.92699,
+            "y": 50.92405,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln Frankfurter Straße",
+            "x": 7.05153,
+            "y": 50.91542,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Dasselstraße/Bf Süd",
+            "x": 6.93573,
+            "y": 50.92825,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Mauritiuskirche",
+            "x": 6.94507,
+            "y": 50.93421,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Frankenforst",
+            "x": 7.13683,
+            "y": 50.96084,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Steinweg",
+            "x": 7.06681,
+            "y": 50.92365,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Frechen Kirche",
+            "x": 6.81583,
+            "y": 50.91008,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln Trimbornstraße",
+            "x": 6.99687,
+            "y": 50.93588,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln-Blumenberg",
+            "x": 6.88198,
+            "y": 51.0374,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln-Chorweiler Nord",
+            "x": 6.89286,
+            "y": 51.02803,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln-Chorweiler",
+            "x": 6.89803,
+            "y": 51.02117,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Bonner Wall",
+            "x": 6.96105,
+            "y": 50.91617,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Kartäuserhof",
+            "x": 6.95845,
+            "y": 50.9251,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Brahmsstraße",
+            "x": 6.89841,
+            "y": 50.926,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Waldecker Straße",
+            "x": 7.00524,
+            "y": 50.95108,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Porz (Rhein)",
+            "x": 7.06449,
+            "y": 50.88327,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln-Ehrenfeld",
+            "x": 6.91653,
+            "y": 50.9515,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln-Müngersdorf/Technologiepark",
+            "x": 6.88843,
+            "y": 50.94842,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Lövenich",
+            "x": 6.83443,
+            "y": 50.94288,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln-Weiden West",
+            "x": 6.8151,
+            "y": 50.94085,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Porz-Wahn",
+            "x": 7.07923,
+            "y": 50.85816,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln Volkhovener Weg",
+            "x": 6.89321,
+            "y": 51.01409,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln-Nippes",
+            "x": 6.94178,
+            "y": 50.95899,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln-Holweide",
+            "x": 7.04111,
+            "y": 50.97622,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln-Buchforst",
+            "x": 7.0043,
+            "y": 50.95353,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln-Dellbrück",
+            "x": 7.07024,
+            "y": 50.98148,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Duckterath",
+            "x": 7.10355,
+            "y": 50.98476,
+            "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Bergisch Gladbach",
+            "x": 7.12378,
+            "y": 50.99087,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Bensberg",
+            "x": 7.16157,
+            "y": 50.96369,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Akazienweg",
+            "x": 6.89407,
+            "y": 50.96062,
+            "u": 1
+        },
+        {
+            "k": "rail",
+            "n": "Heimersdorf",
+            "x": 6.90679,
+            "y": 51.01195,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Christophstraße / Mediapark",
+            "x": 6.94252,
+            "y": 50.9448,
+            "u": 1
+        },
+        {
+            "k": "kvb",
+            "n": "Görlinger-Zentrum",
+            "x": 6.87047,
+            "y": 50.98055,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Kiebitzweg",
+            "x": 6.89709,
+            "y": 50.88802,
+            "u": 0
+        },
+        {
+            "k": "kvb",
+            "n": "Efferen",
+            "x": 6.90404,
+            "y": 50.89447,
+            "u": 0
+        }
+    ]
+}
