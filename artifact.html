@@ -130,6 +130,8 @@ button{cursor:pointer;background:none;border:none}
 .iconbtn{width:34px;height:34px;display:grid;place-items:center;border-radius:8px;
   color:var(--ink-2);flex:none}
 .iconbtn:hover{background:var(--surface-2);color:var(--ink)}
+.iconbtn[aria-pressed="true"]{color:var(--keep);
+  background:color-mix(in srgb,var(--keep) 16%,transparent)}
 .iconbtn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;
   stroke-linecap:round;stroke-linejoin:round}
 
@@ -360,6 +362,10 @@ button{cursor:pointer;background:none;border:none}
   <header id="topbar">
     <div class="brand">Rhein<span>jagd</span></div>
     <div class="stat"><b id="statArea">—</b><small id="statUnit">km² möglich</small></div>
+    <button class="iconbtn" id="btnLive" title="Meinen Standort live anzeigen"
+            aria-label="Standort live anzeigen" role="switch" aria-checked="false" aria-pressed="false">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
+    </button>
     <button class="iconbtn" id="btnTheme" title="Hell/Dunkel" aria-label="Hell/Dunkel umschalten">
       <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
     </button>
@@ -430,8 +436,13 @@ const THERMO_MI = [0.5, 3, 10];
 
 /* Spielgebiet: festes Rechteck aus der Stationsverteilung (`play_box` in
    koeln.json, siehe build-data.js) — kein Radius-Kreis und kein Polygon aus
-   dem KVB-Netzplan mehr. Köln Hbf ist der Standard-Startpunkt. */
-const HOME_DEFAULT = { name: 'Köln Hauptbahnhof', x: 6.95907, y: 50.94278 };
+   dem KVB-Netzplan mehr. Standard-Startpunkt ist die Domtreppe (Runde 15,
+   vorher Köln Hbf) — dort startet Benes Gruppe. */
+const HOME_DEFAULT = { name: 'Domtreppe', x: 6.95827, y: 50.94196 };
+/* Startpunkt bis Runde 14. Ein gespeicherter Spielstand, der noch exakt hier
+   steht, hat ihn nie von Hand geändert — der wird beim Laden mitgezogen.
+   Ein selbst gesetzter Startpunkt bleibt unangetastet. */
+const HOME_LEGACY = { x: 6.95907, y: 50.94278 };
 
 /* Versteckzone: Der Hider muss sich innerhalb dieses Abstands zu einer
    zugelassenen Station aufhalten (Jet-Lag-Standard: 500 m). */
@@ -458,6 +469,10 @@ const S = {
   seeker: null,          // [lon, lat]
   picking: null,         // laufende Punktauswahl
   map: null, layers: {},
+  geoWatch: null,        // laufende watchPosition-ID (Live-Standort)
+  geoPos: null,          // letzte Live-Position [lon, lat]
+  geoAcc: 0,             // deren Genauigkeit in Metern
+  geoCentered: false,    // erste Ortung zentriert die Karte, spätere nicht
   disabled: {},          // cat -> Set(index) abgeschalteter POIs
   thermoFrom: null,
   home: { ...HOME_DEFAULT },   // Startpunkt (für Schnellwahl/Distanzangaben)
@@ -469,6 +484,7 @@ const S = {
                                   // Standard ist zugeklappt, hier stehen nur Ausnahmen
   customPois: [],                // benutzerdefinierte Orte: {id,c,n,x,y}
   poiCat: null,                  // genau eine Ortskategorie auf der Karte (oder null)
+  showDiv: { d2: false, d3: false },  // Bezirks-/Stadtteilgrenzen auf der Karte
   poiPicking: null,              // laufende Punktauswahl für den POI-Editor
 };
 
@@ -1156,6 +1172,7 @@ function initMap() {
   }).addTo(S.map);
 
   S.layers.excl = L.layerGroup().addTo(S.map);
+  S.layers.divs = L.layerGroup().addTo(S.map);
   S.layers.area = L.layerGroup().addTo(S.map);
   S.layers.edges = L.layerGroup().addTo(S.map);
   S.layers.marks = L.layerGroup().addTo(S.map);
@@ -1172,6 +1189,7 @@ function initMap() {
   // skaliert nur den Radius mit, nicht die Linienbreite.
   S.map.on('zoomend', () => { if (S.showZones || S.poiCat) drawArea(); });
   drawArea();
+  drawDivisions();
   fitArea();
 }
 
@@ -1259,6 +1277,45 @@ function drawArea() {
                      { direction: 'top', offset: [0, -4] })
         .addTo(S.layers.area);
     }
+  }
+}
+
+/**
+ * Bezirks- und Stadtteilgrenzen als Linien. Genau die Grenzen, an denen die
+ * Matching-Fragen „gleicher Stadtbezirk?“ / „gleicher Stadtteil?“ entscheiden —
+ * eingeblendet sieht man sofort, warum eine Station knapp raus oder knapp drin
+ * war. Nur Umrisse, keine Füllung: so verdecken sie nichts und fangen auch
+ * keine Kartentipps ab (nur die Linie selbst ist anklickbar und zeigt dann den
+ * Namen).
+ */
+function drawDivisions() {
+  if (S.noMap || !S.layers.divs) return;
+  S.layers.divs.clearLayers();
+  const col = getComputedStyle(document.body).getPropertyValue('--poi').trim() || '#7e22ce';
+
+  // Stadtteile zuerst (fein, gestrichelt), Bezirke darüber (kräftig, durch-
+  // gezogen) — sonst verschwindet die gröbere Ebene unter der feineren.
+  const levels = [
+    ['d3', { weight: 1.3, opacity: .7, dashArray: '5 4' }],
+    ['d2', { weight: 2.8, opacity: .95 }],
+  ];
+  for (const [key, style] of levels) {
+    if (!S.showDiv[key]) continue;
+    const src = S.data.divisions[key];
+    if (!src || !src.features) continue;
+    L.geoJSON(
+      { type: 'FeatureCollection',
+        features: src.features.map((f) => ({
+          type: 'Feature', geometry: f.geometry, properties: { name: f.name },
+        })) },
+      {
+        style: { color: col, fill: false, ...style },
+        onEachFeature: (f, layer) => {
+          layer.bindTooltip(esc(f.properties.name) + ' · ' + esc(src.label),
+                            { sticky: true });
+        },
+      }
+    ).addTo(S.layers.divs);
   }
 }
 
@@ -1490,6 +1547,36 @@ function defineExclusionLayer() {
 function renderMarks() {
   if (S.noMap || !S.layers.marks) return;
   S.layers.marks.clearLayers();
+
+  /* Live-Standort: Genauigkeitskreis in echten Metern plus Punkt. Grün, damit
+     er weder mit der Seeker-Position (Türkis) noch mit den Versteckradien
+     (Blau) oder den Orten (Lila) verwechselt werden kann. */
+  if (S.geoPos) {
+    const live = getComputedStyle(document.body).getPropertyValue('--keep').trim() || '#1f7a4d';
+    if (S.geoAcc > 5) {
+      L.circle([S.geoPos[1], S.geoPos[0]], {
+        radius: S.geoAcc, color: live, weight: 1, opacity: .6,
+        fillColor: live, fillOpacity: .12, interactive: false,
+      }).addTo(S.layers.marks);
+    }
+    /* Ring statt Vollkreis: die Seeker-Position ist ein voller Punkt in
+       Türkis, der Live-Standort ein Ring in Grün — dadurch sind die beiden
+       auch bei schlechtem Licht und schräg gehaltenem Handy zu trennen,
+       nicht nur an der Farbe. */
+    const dot = L.divIcon({
+      className: '', iconSize: [18, 18], iconAnchor: [9, 9],
+      html: '<div style="width:18px;height:18px;border-radius:50%;background:' + live + ';' +
+            'border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35);' +
+            'display:grid;place-items:center">' +
+            '<i style="width:6px;height:6px;border-radius:50%;background:#fff;display:block"></i>' +
+            '</div>',
+    });
+    L.marker([S.geoPos[1], S.geoPos[0]], { icon: dot, interactive: false })
+      .bindTooltip('Dein Standort · ±' + Math.round(S.geoAcc) + ' m',
+                   { direction: 'top', offset: [0, -8] })
+      .addTo(S.layers.marks);
+  }
+
   if (S.seeker) {
     const el = L.divIcon({
       className: '', iconSize: [18, 18], iconAnchor: [9, 9],
@@ -1524,9 +1611,30 @@ function updateStats() {
 /* ============================================================
    Interaktion
    ============================================================ */
+/**
+ * Ein Tipp auf die Karte tut nur dann etwas, wenn vorher ausdrücklich eine
+ * Punktauswahl gestartet wurde (Knopf „Karte“ in der Standortleiste, Startpunkt
+ * setzen, Ort platzieren). Vorher verschob jeder versehentliche Tipp beim
+ * Zoomen oder Scrollen die Seeker-Position — im Spiel ärgerlich, weil damit
+ * stillschweigend die Bezugsposition aller Fragen wanderte.
+ */
 function onMapClick(e) {
+  if (!S.picking) return;
   const pt = [e.latlng.lng, e.latlng.lat];
-  if (S.picking) { const f = S.picking; S.picking = null; hint(null); f(pt); return; }
+  const f = S.picking; S.picking = null; hint(null); f(pt);
+}
+
+/** Laufende Punktauswahl abbrechen (Escape oder erneuter Knopfdruck). */
+function cancelPicking() {
+  if (!S.picking) return false;
+  S.picking = null; hint(null);
+  return true;
+}
+
+/** Seeker-Position per Kartentipp setzen. */
+async function pickSeeker() {
+  if (cancelPicking()) return;
+  const pt = await pickPoint('Position auf der Karte antippen — Esc bricht ab');
   setSeeker(pt, false);
 }
 
@@ -1559,10 +1667,10 @@ function askCoords() {
   const cur = S.seeker || [S.home.x, S.home.y];
   card.innerHTML =
     '<div class="qtitle" id="sheetTitle">Koordinaten eingeben</div>' +
-    '<div class="qmeta">Breite und Länge, z. B. <code>50.94278, 6.95907</code> — ' +
+    '<div class="qmeta">Breite und Länge, z. B. <code>50.94196, 6.95827</code> — ' +
     'so wie Google Maps sie beim Langdruck anzeigt.</div>' +
     '<input class="sel" id="coordIn" inputmode="decimal" autocomplete="off" ' +
-    'placeholder="50.94278, 6.95907" value="' + cur[1].toFixed(5) + ', ' + cur[0].toFixed(5) + '">' +
+    'placeholder="50.94196, 6.95827" value="' + cur[1].toFixed(5) + ', ' + cur[0].toFixed(5) + '">' +
     '<div class="note" id="coordMsg"></div>' +
     '<div class="answers">' +
     '<button class="ans yes" id="coordOk">Position setzen</button>' +
@@ -1572,7 +1680,7 @@ function askCoords() {
   const msg = card.querySelector('#coordMsg');
   const apply = () => {
     const p = parseCoords(input.value);
-    if (!p) { msg.textContent = 'Bitte zwei Zahlen eingeben, z. B. 50.94278, 6.95907'; return; }
+    if (!p) { msg.textContent = 'Bitte zwei Zahlen eingeben, z. B. 50.94196, 6.95827'; return; }
     if (p[1] < 47 || p[1] > 55 || p[0] < 5 || p[0] > 10) {
       msg.textContent = 'Das liegt weit außerhalb der Region — Breite und Länge vertauscht?';
       return;
@@ -1622,10 +1730,13 @@ function renderAsk() {
       '<button class="btn" id="btnGeo">Mein Standort</button>' +
       '<button class="btn flat" id="btnHome">' + esc(S.home.name) + '</button>' +
       '</div>' +
-      '<button class="btn flat" id="btnCoord">Koordinaten eingeben</button>' +
-      '<div class="note">Oder tippe direkt auf die Karte.</div>';
+      '<div class="setgrid">' +
+      '<button class="btn flat" id="btnPick">Auf Karte tippen</button>' +
+      '<button class="btn flat" id="btnCoord">Koordinaten</button>' +
+      '</div>';
     document.getElementById('btnGeo').onclick = useGeolocation;
     document.getElementById('btnHome').onclick = () => setSeeker([S.home.x, S.home.y], true);
+    document.getElementById('btnPick').onclick = pickSeeker;
     document.getElementById('btnCoord').onclick = askCoords;
     return;
   }
@@ -1648,11 +1759,13 @@ function renderAsk() {
     '<div class="poscoord">' + S.seeker[1].toFixed(5) + ', ' + S.seeker[0].toFixed(5) + '</div></div></div>' +
     '<div class="posacts">' +
     '<button class="minibtn" id="pGeo" title="Mein Standort">GPS</button>' +
+    '<button class="minibtn" id="pMap" title="Position auf der Karte antippen">Karte</button>' +
     '<button class="minibtn" id="pHome" title="' + esc(S.home.name) + '">Start</button>' +
     '<button class="minibtn" id="pCoord" title="Koordinaten eingeben">Koord.</button>' +
     '</div>';
   box.appendChild(bar);
   bar.querySelector('#pGeo').onclick = useGeolocation;
+  bar.querySelector('#pMap').onclick = pickSeeker;
   bar.querySelector('#pHome').onclick = () => setSeeker([S.home.x, S.home.y], true);
   bar.querySelector('#pCoord').onclick = askCoords;
 
@@ -2092,21 +2205,22 @@ function askHomeCoords() {
   const card = document.getElementById('sheetCard');
   card.innerHTML =
     '<div class="qtitle" id="sheetTitle">Startpunkt festlegen</div>' +
-    '<div class="qmeta">Für Schnellwahl und Entfernungsangaben. Standard ist Köln Hbf.</div>' +
+    '<div class="qmeta">Für Schnellwahl und Entfernungsangaben. Standard ist die ' +
+    esc(HOME_DEFAULT.name) + '.</div>' +
     '<input class="sel" id="hName" placeholder="Name, z. B. Köln Hauptbahnhof" ' +
     'value="' + esc(S.home.name) + '">' +
-    '<input class="sel" id="hCoord" inputmode="decimal" placeholder="50.94278, 6.95907" ' +
+    '<input class="sel" id="hCoord" inputmode="decimal" placeholder="50.94196, 6.95827" ' +
     'value="' + S.home.y.toFixed(5) + ', ' + S.home.x.toFixed(5) + '">' +
     '<div class="note" id="hMsg"></div>' +
     '<div class="answers">' +
     '<button class="ans yes" id="hOk">Übernehmen</button>' +
-    '<button class="ans no" id="hReset">Zurück auf Köln Hbf</button>' +
+    '<button class="ans no" id="hReset">Zurück auf ' + esc(HOME_DEFAULT.name) + '</button>' +
     '</div><button class="ghost" data-a="">Abbrechen</button>';
 
   const msg = card.querySelector('#hMsg');
   card.querySelector('#hOk').onclick = () => {
     const p = parseCoords(card.querySelector('#hCoord').value);
-    if (!p) { msg.textContent = 'Bitte zwei Zahlen eingeben, z. B. 50.94278, 6.95907'; return; }
+    if (!p) { msg.textContent = 'Bitte zwei Zahlen eingeben, z. B. 50.94196, 6.95827'; return; }
     const nm = card.querySelector('#hName').value.trim() || 'Startpunkt';
     closeSheet();
     changeArea({ home: { name: nm, x: p[0], y: p[1] } });
@@ -2156,6 +2270,32 @@ function renderData() {
     b.onclick = () => {
       S.poiCat = S.poiCat === b.dataset.cat ? null : b.dataset.cat;
       renderData(); drawArea(); save();
+    };
+  });
+
+  /* Verwaltungsgrenzen — anders als die Ortskategorien frei kombinierbar,
+     weil Bezirk und Stadtteil zusammen gelesen werden (der grobe Rahmen und
+     die feine Unterteilung darin). */
+  const divSel = document.createElement('div');
+  divSel.className = 'group';
+  const divOn = ['d2', 'd3'].filter((k) => S.showDiv[k]).length;
+  divSel.innerHTML =
+    '<div class="grouphd"><span class="grouptitle">Grenzen</span>' +
+    ' <span class="ghint">' + (divOn ? divOn + ' an' : 'aus') + '</span></div>' +
+    '<div class="chips">' +
+    ['d2', 'd3'].map((k) =>
+      '<button class="chip poi" data-div="' + k + '" aria-pressed="' + !!S.showDiv[k] + '">' +
+      esc(S.data.divisions[k].label) + 'e</button>').join('') +
+    '</div>' +
+    '<div class="note">Die Linien der Matching-Fragen „gleicher Stadtbezirk“ ' +
+    'und „gleicher Stadtteil“. Auf eine Linie tippen zeigt den Namen. Außerhalb ' +
+    'Kölns gibt es keine — dort schließen diese beiden Fragen nie etwas aus.</div>';
+  box.appendChild(divSel);
+  divSel.querySelectorAll('.chip[data-div]').forEach((b) => {
+    b.onclick = () => {
+      const k = b.dataset.div;
+      S.showDiv[k] = !S.showDiv[k];
+      renderData(); drawDivisions(); save();
     };
   });
 
@@ -2244,7 +2384,7 @@ function openPoiSheet(poi) {
     '<input class="sel" id="poiSearch" placeholder="Adresse oder Name suchen (braucht Internet) …">' +
     '<div class="note" id="poiSearchMsg"></div>' +
     '<div id="poiSearchResults"></div>' +
-    '<input class="sel" id="poiCoord" inputmode="decimal" placeholder="oder Koordinaten: 50.94278, 6.95907" ' +
+    '<input class="sel" id="poiCoord" inputmode="decimal" placeholder="oder Koordinaten: 50.94196, 6.95827" ' +
     'value="' + pt[1].toFixed(5) + ', ' + pt[0].toFixed(5) + '">' +
     '<div class="note" id="poiMsg"></div>' +
     '<div class="answers">' +
@@ -2365,6 +2505,8 @@ function save() {
       expanded: Object.keys(S.expanded),
       customPois: S.customPois,
       poiCat: S.poiCat,
+      showDiv: S.showDiv,
+      live: S.geoWatch !== null,
     }));
   } catch (e) { /* privater Modus: kein Problem */ }
 }
@@ -2375,7 +2517,11 @@ function load() {
     if (!raw) return false;
     const d = JSON.parse(raw);
     if (d.seeker) S.seeker = d.seeker;
-    if (d.home && isFinite(d.home.x) && isFinite(d.home.y)) S.home = d.home;
+    if (d.home && isFinite(d.home.x) && isFinite(d.home.y)) {
+      const untouched = Math.abs(d.home.x - HOME_LEGACY.x) < 1e-5 &&
+                        Math.abs(d.home.y - HOME_LEGACY.y) < 1e-5;
+      S.home = untouched ? { ...HOME_DEFAULT } : d.home;
+    }
     // Alte Schlüssel bewusst nicht mehr gelesen: d.radiusKm (Radius-Kreis,
     // Runde 11), d.hideZoneOn und d.fineEdgesOn (Raster-Ära). Die Versteckzone
     // ist seit dem Stationsmodell keine Option mehr, sondern die Grundlage.
@@ -2403,12 +2549,62 @@ function load() {
     // d.showPois (alles-oder-nichts) wird bewusst nicht mehr gelesen: die
     // Anzeige läuft jetzt über genau eine Kategorie.
     if (typeof d.poiCat === 'string' && CATS[d.poiCat]) S.poiCat = d.poiCat;
+    if (d.showDiv) S.showDiv = { d2: !!d.showDiv.d2, d3: !!d.showDiv.d3 };
+    S.wantLive = !!d.live;   // erst nach initMap() wirklich starten
     return true;
   } catch (e) { return false; }
 }
 
 /* ---------- Geolocation ---------- */
+
+/**
+ * Live-Standort an/aus. Getrennt von der Seeker-Position, und das mit Absicht:
+ * die Seeker-Position ist der Bezugspunkt, auf den sich die gestellten Fragen
+ * beziehen — die darf nicht mitwandern, während man weiterläuft. Der
+ * Live-Punkt zeigt nur, wo man gerade ist; mit „GPS“ in der Standortleiste
+ * übernimmt man ihn bewusst als Seeker-Position.
+ */
+function toggleLive() {
+  if (S.geoWatch !== null) { stopLive(); hint('Standort aus'); setTimeout(() => hint(null), 1200); return; }
+  if (!navigator.geolocation) { hint('Standort nicht verfügbar'); setTimeout(() => hint(null), 2000); return; }
+  hint('Standort wird gesucht …');
+  S.geoCentered = false;
+  S.geoWatch = navigator.geolocation.watchPosition(
+    (pos) => {
+      S.geoPos = [pos.coords.longitude, pos.coords.latitude];
+      S.geoAcc = pos.coords.accuracy || 0;
+      if (!S.geoCentered) {
+        S.geoCentered = true;
+        hint(null);
+        if (S.map) S.map.setView([S.geoPos[1], S.geoPos[0]], Math.max(S.map.getZoom(), 15));
+      }
+      renderMarks();
+    },
+    () => {
+      stopLive();
+      hint('Standort nicht verfügbar — Ortung im Browser erlauben?');
+      setTimeout(() => hint(null), 3000);
+    },
+    { enableHighAccuracy: true, maximumAge: 4000, timeout: 20000 }
+  );
+  syncLiveButton(); save();
+}
+
+function stopLive() {
+  if (S.geoWatch !== null) navigator.geolocation.clearWatch(S.geoWatch);
+  S.geoWatch = null; S.geoPos = null; S.geoAcc = 0;
+  renderMarks(); syncLiveButton(); save();
+}
+
+function syncLiveButton() {
+  const b = document.getElementById('btnLive');
+  if (b) b.setAttribute('aria-pressed', String(S.geoWatch !== null));
+}
+
 function useGeolocation() {
+  // Läuft der Live-Standort schon, ist die Position bereits da — kein zweiter
+  // Ortungsvorgang nötig.
+  if (S.geoPos) { setSeeker([...S.geoPos], true); return; }
   if (!navigator.geolocation) { hint('Standort nicht verfügbar'); setTimeout(() => hint(null), 2000); return; }
   hint('Standort wird gesucht …');
   navigator.geolocation.getCurrentPosition(
@@ -2516,17 +2712,28 @@ function boot() {
   document.getElementById('btnReset').onclick = () => {
     S.history = []; S.seeker = null; S.thermoFrom = null;
     S.manual.clear(); S.endgame.clear(); S.force.clear();
+    cancelPicking();
     renderMarks(); recompute(); drawArea();
   };
   document.getElementById('sheet').onclick = (e) => {
     if (e.target.id === 'sheet') closeSheet();
   };
-  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+  document.getElementById('btnLive').onclick = toggleLive;
+  syncLiveButton();
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    // Escape bricht zuerst eine laufende Kartenauswahl ab, sonst schließt es
+    // den Dialog — sonst bliebe man im Auswahlmodus hängen.
+    if (!cancelPicking()) closeSheet();
+  });
 
   if (hadSave && S.history.length) recompute();
   else { renderExclusion(); drawEdges(); renderAsk(); renderHist(); }
   renderMarks();
   if (S.seeker && S.map) S.map.setView([S.seeker[1], S.seeker[0]], 13);
+  // War der Live-Standort beim letzten Mal an, wieder anschalten. Die
+  // Ortungsfreigabe hat der Browser dann bereits.
+  if (S.wantLive && !S.noMap) toggleLive();
 
   if (S.noMap) {
     document.getElementById('map').innerHTML =

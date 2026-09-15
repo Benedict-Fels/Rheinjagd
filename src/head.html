@@ -130,6 +130,8 @@ button{cursor:pointer;background:none;border:none}
 .iconbtn{width:34px;height:34px;display:grid;place-items:center;border-radius:8px;
   color:var(--ink-2);flex:none}
 .iconbtn:hover{background:var(--surface-2);color:var(--ink)}
+.iconbtn[aria-pressed="true"]{color:var(--keep);
+  background:color-mix(in srgb,var(--keep) 16%,transparent)}
 .iconbtn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;
   stroke-linecap:round;stroke-linejoin:round}
 
