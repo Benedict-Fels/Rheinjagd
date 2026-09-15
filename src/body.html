@@ -1,0 +1,39 @@
+<div id="app">
+  <header id="topbar">
+    <div class="brand">Rhein<span>jagd</span></div>
+    <div class="stat"><b id="statArea">—</b><small id="statUnit">km² möglich</small></div>
+    <button class="iconbtn" id="btnTheme" title="Hell/Dunkel" aria-label="Hell/Dunkel umschalten">
+      <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+    </button>
+    <button class="iconbtn" id="btnReset" title="Neues Spiel" aria-label="Neues Spiel">
+      <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+    </button>
+  </header>
+
+  <div id="mapwrap">
+    <div id="map"></div>
+    <div class="maphint" id="mapHint" hidden></div>
+    <div class="legend">
+      <div><i style="background:var(--exclude);opacity:.55"></i>ausgeschlossen</div>
+      <div><i style="background:var(--accent)"></i>Seeker-Position</div>
+    </div>
+  </div>
+
+  <section id="panel">
+    <div id="grip" role="separator" aria-label="Panel-Höhe ziehen"></div>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true"  data-tab="ask">Fragen</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="hist">Verlauf <span id="histCount"></span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="data">Orte</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="setup">Gebiet</button>
+    </nav>
+    <div class="tabbody" id="tabAsk"></div>
+    <div class="tabbody" id="tabHist" hidden></div>
+    <div class="tabbody" id="tabData" hidden></div>
+    <div class="tabbody" id="tabSetup" hidden></div>
+  </section>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="card" id="sheetCard" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
+</div>
