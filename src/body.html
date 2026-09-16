@@ -1,7 +1,10 @@
 <div id="app">
   <header id="topbar">
     <div class="brand">Rhein<span>jagd</span></div>
-    <div class="stat"><b id="statArea">—</b><small id="statUnit">km² möglich</small></div>
+    <div class="stat"><b id="statArea">—</b><small id="statUnit">km²<span class="long"> möglich</span></small></div>
+    <button class="iconbtn" id="btnShare" title="Standort teilen" aria-label="Standort teilen">
+      <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8 15.7 6.4M8.3 13.2l7.4 4.4"/></svg>
+    </button>
     <button class="iconbtn" id="btnLive" title="Meinen Standort live anzeigen"
             aria-label="Standort live anzeigen" role="switch" aria-checked="false" aria-pressed="false">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
@@ -24,7 +27,13 @@
   </div>
 
   <section id="panel">
-    <div id="grip" role="separator" aria-label="Panel-Höhe ziehen"></div>
+    <button id="grip" type="button" aria-expanded="false" aria-controls="panel"
+            aria-label="Panel auf- oder zuklappen"
+            title="Tippen: auf-/zuklappen · Ziehen: Höhe ändern">
+      <span class="bar"></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      <span class="bar"></span>
+    </button>
     <nav class="tabs" role="tablist">
       <button class="tab" role="tab" aria-selected="true"  data-tab="ask">Fragen</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="hist">Verlauf <span id="histCount"></span></button>

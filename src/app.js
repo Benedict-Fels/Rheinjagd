@@ -6,27 +6,48 @@
 const MILE_KM = 1.609344;
 /** Fläche einer Rasterzelle in km² — hängt vom gewählten Radius ab. */
 
-/* ---------- Kategorien ---------- */
+/* ---------- Kategorien ----------
+   `g` ist das Geschlecht des Kategoriennamens (m/f/n). Die Fragetexte werden
+   daraus gebeugt — vorher stand über jeder Karte "Ist dein nächstes Bahnhof
+   dasselbe?", was bei sieben der elf Kategorien falsch war. */
 const CATS = {
-  museum:     { label: 'Museum',        plural: 'Museen' },
-  library:    { label: 'Bibliothek',    plural: 'Bibliotheken' },
-  cinema:     { label: 'Kino',          plural: 'Kinos' },
-  hospital:   { label: 'Krankenhaus',   plural: 'Krankenhäuser' },
-  station:    { label: 'Bahnhof',       plural: 'Bahnhöfe' },
-  park:       { label: 'Park',          plural: 'Parks' },
-  zoo:        { label: 'Zoo',           plural: 'Zoos' },
-  aquarium:   { label: 'Aquarium',      plural: 'Aquarien' },
-  theme_park: { label: 'Freizeitpark',  plural: 'Freizeitparks' },
-  golf:       { label: 'Golfplatz',     plural: 'Golfplätze' },
-  consulate:  { label: 'Konsulat',      plural: 'Konsulate' },
+  museum:     { label: 'Museum',        plural: 'Museen',        g: 'n' },
+  library:    { label: 'Bibliothek',    plural: 'Bibliotheken',  g: 'f' },
+  cinema:     { label: 'Kino',          plural: 'Kinos',         g: 'n' },
+  hospital:   { label: 'Krankenhaus',   plural: 'Krankenhäuser', g: 'n' },
+  station:    { label: 'Bahnhof',       plural: 'Bahnhöfe',      g: 'm' },
+  park:       { label: 'Park',          plural: 'Parks',         g: 'm' },
+  mangal:     { label: 'Mangal Döner',  plural: 'Mangal Döner',  g: 'm' },
+  zoo:        { label: 'Zoo',           plural: 'Zoos',          g: 'm' },
+  aquarium:   { label: 'Aquarium',      plural: 'Aquarien',      g: 'n' },
+  theme_park: { label: 'Freizeitpark',  plural: 'Freizeitparks', g: 'm' },
+  golf:       { label: 'Golfplatz',     plural: 'Golfplätze',    g: 'm' },
+  consulate:  { label: 'Konsulat',      plural: 'Konsulate',     g: 'n' },
 };
 
 /** Reihenfolge in den Fragenlisten — häufige und nützliche zuerst. */
-const CAT_ORDER = ['station', 'park', 'museum', 'cinema', 'library', 'hospital',
-                   'zoo', 'aquarium', 'theme_park', 'golf', 'consulate'];
+const CAT_ORDER = ['station', 'park', 'mangal', 'museum', 'cinema', 'library',
+                   'hospital', 'zoo', 'aquarium', 'theme_park', 'golf', 'consulate'];
+
+/* Beugung der Kategoriennamen in den Fragetexten. Ein Wort je Geschlecht,
+   damit die Vorlagen unten lesbar bleiben. */
+const DECL = {
+  m: { nom: 'dein nächster',  pos: 'derselbe', mein: 'meiner', dem: 'am nächsten',   ein: 'an einem', welch: 'Welcher', welchem: 'Welchem' },
+  f: { nom: 'deine nächste',  pos: 'dieselbe', mein: 'meine',  dem: 'an der nächsten', ein: 'an einer', welch: 'Welche',  welchem: 'Welcher' },
+  n: { nom: 'dein nächstes',  pos: 'dasselbe', mein: 'meines', dem: 'am nächsten',   ein: 'an einem', welch: 'Welches', welchem: 'Welchem' },
+};
+const decl = (c) => DECL[CATS[c].g] || DECL.n;
 
 const RADAR_MI = [0.25, 0.5, 1, 3, 5, 10];
 const THERMO_MI = [0.5, 3, 10];
+
+/* Verstecker-Seite: ab wann ist eine Antwort zu knapp, um sie der App zu
+   glauben? Beim Radar hängt nur die eigene Position dran (GPS ±10 m, von Hand
+   gesetzt exakt), beim Messen zusätzlich zwei OSM-Punkte, die selbst um ~20 m
+   danebenliegen können. Darunter wird gemeldet statt behauptet — dieselbe
+   Haltung wie bei den Grenzfällen der Stationen. */
+const HIDE_NEAR_RADAR_KM = 0.025;
+const HIDE_NEAR_MEASURE_KM = 0.05;
 
 /* Spielgebiet: festes Rechteck aus der Stationsverteilung (`play_box` in
    koeln.json, siehe build-data.js) — kein Radius-Kreis und kein Polygon aus
@@ -61,6 +82,8 @@ const S = {
   force: new Set(),      // von Hand möglich gelassen, trotz Antwort
   history: [], stamp: 0,
   seeker: null,          // [lon, lat]
+  hide: null,            // [lon, lat] — eigenes Versteck (Verstecker-Seite).
+                         // Wandert nie von selbst mit, wird nie geteilt.
   picking: null,         // laufende Punktauswahl
   map: null, layers: {},
   geoWatch: null,        // laufende watchPosition-ID (Live-Standort)
@@ -73,12 +96,16 @@ const S = {
   box: null,                   // Spielgebiets-Rechteck {minX,maxX,minY,maxY} — aus data.play_box
   hideRadiusM: HIDE_RADIUS_M_DEFAULT,   // Versteckradius um Stationen
   hideKinds: { rail: true, kvb: true },
+  panelOpen: false,            // Handy: Panel aufgeklappt? (Standard: zu, Karte groß)
+  panelH: 0,                   // gemerkte Arbeitshöhe des Panels in px (0 = Stylesheet)
   showZones: false,            // Stationspunkte UND Versteckradien auf der Karte
   expanded: {},                  // Titel aufgeklappter Gruppen (Fragen- und Orte-Tab) —
                                   // Standard ist zugeklappt, hier stehen nur Ausnahmen
   customPois: [],                // benutzerdefinierte Orte: {id,c,n,x,y}
   poiCat: null,                  // genau eine Ortskategorie auf der Karte (oder null)
   showDiv: { d2: false, d3: false },  // Bezirks-/Stadtteilgrenzen auf der Karte
+  shared: null,          // von der anderen Gruppe geteilte Position
+                         // { x, y, name, t } — t = Unix-Sekunden beim Teilen
   poiPicking: null,              // laufende Punktauswahl für den POI-Editor
 };
 
@@ -623,10 +650,105 @@ function evaluate(q) {
 }
 
 /* ============================================================
+   Verstecker-Seite
+   ============================================================
+   Dieselben Daten, andere Blickrichtung: statt Stationen auszuschließen wird
+   die Frage vom eigenen Versteck aus beantwortet. Bewusst nur Radar und
+   Measuring — Matching liest man in der Orte-Liste ab (Benes Entscheidung),
+   Thermometer und Tentacles bleiben außen vor. */
+
+/** Entfernung kurz: unter 1 km in Metern, darüber in Kilometern. */
+function fmtDist(km) {
+  return km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(2) + ' km';
+}
+
+/**
+ * Die wahre Antwort auf eine Frage, gemessen vom Versteck aus.
+ *
+ * `mine` und `theirs` sind die beiden Entfernungen in km (beim Radar: eigene
+ * Entfernung und Radius), `margin` ihr Abstand zur Entscheidungsgrenze. Liegt
+ * der unter der Toleranz, sagt `near` das — die App kennt weder die
+ * Messgenauigkeit des OSM-Punktes noch den Meter, auf dem du tatsächlich
+ * sitzt, und soll dann nicht so tun als ob.
+ *
+ * Bezugspunkt ist `q.seeker`, also die beim Stellen eingefrorene
+ * Jäger-Position — nicht die aktuelle. Das Versteck dagegen wird live
+ * gelesen: es bewegt sich nicht, und wenn du es korrigierst, sollen die
+ * Antworten sofort stimmen.
+ */
+function hideAnswer(q) {
+  const h = S.hide;
+  if (!h || !q || !q.seeker) return null;
+  const cmp = (mine, theirs, tol, mineName, theirsName) => ({
+    ans: mine < theirs ? 'closer' : 'further',
+    mine, theirs, mineName, theirsName,
+    margin: Math.abs(mine - theirs),
+    near: Math.abs(mine - theirs) <= tol,
+  });
+
+  switch (q.type) {
+    case 'radar': {
+      const r = q.mi * MILE_KM;
+      const d = distKm(h[0], h[1], q.seeker[0], q.seeker[1]);
+      // „innerhalb" schließt den Rand ein — dieselbe Regel wie stationDecider().
+      return { ans: d <= r ? 'yes' : 'no', mine: d, theirs: r,
+               margin: Math.abs(d - r), near: Math.abs(d - r) <= HIDE_NEAR_RADAR_KM };
+    }
+    case 'measure-poi': {
+      const a = nearestAt(q.cat, h), b = nearestAt(q.cat, q.seeker);
+      if (!a.poi || !b.poi) return null;
+      return cmp(a.d, b.d, HIDE_NEAR_MEASURE_KM, a.poi.n, b.poi.n);
+    }
+    case 'measure-rhein': {
+      return cmp(distToLineKm(h[0], h[1], S.data.rhein),
+                 distToLineKm(q.seeker[0], q.seeker[1], S.data.rhein),
+                 HIDE_NEAR_MEASURE_KM);
+    }
+    case 'measure-border': {
+      return cmp(distToBorderKm(q.level, h), distToBorderKm(q.level, q.seeker),
+                 HIDE_NEAR_MEASURE_KM);
+    }
+    default: return null;
+  }
+}
+
+/**
+ * Steht das Versteck noch im möglichen Gebiet? Gezählt werden die Stationen,
+ * in deren Versteckzone es liegt.
+ *   n > 0        die Jäger können dich rechnerisch nicht ausschließen
+ *   n = 0, c > 0 ausgeschlossen — entweder haben sie dich, oder eine Antwort
+ *                im Verlauf ist falsch eingetragen
+ *   c = 0        gar keine zugelassene Station in Reichweite: nach euren
+ *                Regeln ist das kein gültiges Versteck
+ */
+function hideStatus() {
+  if (!S.hide) return null;
+  const r = S.hideRadiusM / 1000;
+  let n = 0, c = 0;
+  for (const s of hideStations()) {
+    if (distKm(s.x, s.y, S.hide[0], S.hide[1]) > r) continue;
+    c++;
+    if (stationLive(s)) n++;
+  }
+  return { n, c, ok: n > 0, illegal: c === 0 };
+}
+
+function hideStatusText(st) {
+  if (!st) return '';
+  if (st.illegal) return 'keine Station in Reichweite';
+  if (!st.ok) return 'ausgeschlossen';
+  return 'im Gebiet · ' + st.n + (st.n === 1 ? ' Station' : ' Stationen');
+}
+
+/* ============================================================
    Fragenkatalog
    ============================================================ */
 function buildCatalog() {
-  const sk = S.seeker;
+  /* Kopie, keine Referenz: die Koordinaten wandern mit in den Verlauf und
+     müssen der Stand zum Zeitpunkt des Fragens bleiben. Eine geteilte
+     Referenz würde bei einer späteren In-Place-Änderung alle bereits
+     beantworteten Fragen rückwirkend verschieben. */
+  const sk = S.seeker ? [S.seeker[0], S.seeker[1]] : S.seeker;
   const cat = [];
 
   /* --- Matching --- */
@@ -657,8 +779,9 @@ function buildCatalog() {
     matching.push({
       type: 'match-poi', cat: c, seeker: sk,
       name: CATS[c].label,
-      sub: 'Ist dein nächstes ' + CATS[c].label + ' dasselbe?',
-      ask: 'Ist dein nächstes <em>' + CATS[c].label + '</em> dasselbe wie meines?',
+      sub: 'Ist ' + decl(c).nom + ' ' + CATS[c].label + ' ' + decl(c).pos + '?',
+      ask: 'Ist ' + decl(c).nom + ' <em>' + CATS[c].label + '</em> ' +
+           decl(c).pos + ' wie ' + decl(c).mein + '?',
       ctx: () => nearestAt(c, sk).poi?.n || '—',
     });
   }
@@ -688,8 +811,9 @@ function buildCatalog() {
     if (!activePois(c).length) continue;
     measuring.push({
       type: 'measure-poi', cat: c, seeker: sk,
-      name: CATS[c].label, sub: 'Näher am nächsten ' + CATS[c].label + '?',
-      ask: 'Bist du näher an einem <em>' + CATS[c].label + '</em> oder weiter weg als ich?',
+      name: CATS[c].label, sub: 'Näher ' + decl(c).dem + ' ' + CATS[c].label + '?',
+      ask: 'Bist du näher ' + decl(c).ein + ' <em>' + CATS[c].label +
+           '</em> oder weiter weg als ich?',
       ctx: () => { const r = nearestAt(c, sk); return r.poi ? r.d.toFixed(2) + ' km · ' + r.poi.n : '—'; },
     });
   }
@@ -725,8 +849,9 @@ function buildCatalog() {
     tent.push({
       type: 'tentacle', cat: c, mi: 1, seeker: sk,
       name: CATS[c].plural + ' · 1 Meile',
-      sub: 'Welches ' + CATS[c].label + ' ist dir am nächsten?',
-      ask: 'Welchem <em>' + CATS[c].label + '</em> im Umkreis von 1 Meile bist du am nächsten?',
+      sub: decl(c).welch + ' ' + CATS[c].label + ' ist dir am nächsten?',
+      ask: decl(c).welchem + ' <em>' + CATS[c].label +
+           '</em> im Umkreis von 1 Meile bist du am nächsten?',
       ctx: () => inReach(c, sk, 1).length + ' in Reichweite',
     });
   }
@@ -781,7 +906,10 @@ function initMap() {
   // Die Strichstärke der Versteckradien hängt an der Zoomstufe (zoneWeight),
   // deshalb muss der Layer nach jedem Zoom neu gezeichnet werden. Leaflet
   // skaliert nur den Radius mit, nicht die Linienbreite.
-  S.map.on('zoomend', () => { if (S.showZones || S.poiCat) drawArea(); });
+  S.map.on('zoomend', () => {
+    if (S.showZones || S.poiCat) drawArea();
+    if (S.showDiv.d2 || S.showDiv.d3) drawDivisions();
+  });
   drawArea();
   drawDivisions();
   fitArea();
@@ -889,9 +1017,21 @@ function drawDivisions() {
 
   // Stadtteile zuerst (fein, gestrichelt), Bezirke darüber (kräftig, durch-
   // gezogen) — sonst verschwindet die gröbere Ebene unter der feineren.
+  const dark = getComputedStyle(document.body).getPropertyValue('--div3').trim() || '#1f2937';
+  const z = S.map ? S.map.getZoom() : 12;
+  // 86 Stadtteilgrenzen sind herausgezoomt ein Knäuel — dort dünner, beim
+  // Reinzoomen kräftig. Gleiche Logik wie bei den Versteckradien.
+  const w3 = z >= 14 ? 2.4 : (z >= 12 ? 1.8 : 1.2);
+  const w2 = z >= 14 ? 3.4 : (z >= 12 ? 2.8 : 2.0);
+
+  /* Beide Ebenen durchgezogen und ähnlich dick (Bene, Runde 16) — gestrichelt
+     und dünn war für die Stadtteile zu schlecht zu erkennen. Unterschieden
+     werden sie jetzt über die Farbe: Bezirke lila wie die Orte, Stadtteile
+     fast schwarz. Schwarz, weil es das einzige ist, was auch auf der roten
+     Ausschlussfläche noch trägt (5,5:1 gegen 2,8:1 bei Lila). */
   const levels = [
-    ['d3', { weight: 1.3, opacity: .7, dashArray: '5 4' }],
-    ['d2', { weight: 2.8, opacity: .95 }],
+    ['d3', { color: dark, weight: w3, opacity: .85 }],
+    ['d2', { color: col, weight: w2, opacity: .95 }],
   ];
   for (const [key, style] of levels) {
     if (!S.showDiv[key]) continue;
@@ -903,7 +1043,7 @@ function drawDivisions() {
           type: 'Feature', geometry: f.geometry, properties: { name: f.name },
         })) },
       {
-        style: { color: col, fill: false, ...style },
+        style: { fill: false, ...style },
         onEachFeature: (f, layer) => {
           layer.bindTooltip(esc(f.properties.name) + ' · ' + esc(src.label),
                             { sticky: true });
@@ -1179,6 +1319,46 @@ function renderMarks() {
     });
     L.marker([S.seeker[1], S.seeker[0]], { icon: el, interactive: false }).addTo(S.layers.marks);
   }
+  /* Von der anderen Gruppe geteilte Position: Raute in Bernstein, damit sie
+     weder mit dem eigenen Live-Standort (grüner Ring) noch mit der
+     Seeker-Position (türkiser Punkt) verwechselt wird. Andere Form, andere
+     Farbe — im Zweifel entscheidet die Form. */
+  if (S.shared) {
+    const el = L.divIcon({
+      className: '', iconSize: [20, 20], iconAnchor: [10, 10],
+      html: '<div style="width:14px;height:14px;background:var(--warn);' +
+            'border:2.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35);' +
+            'transform:rotate(45deg);margin:3px"></div>',
+    });
+    L.marker([S.shared.y, S.shared.x], { icon: el, interactive: true })
+      .bindTooltip((S.shared.name ? esc(S.shared.name) + ' · ' : '') + 'geteilt' +
+                   (S.shared.t ? ' · ' + sharedAge(S.shared.t) : ''),
+                   { direction: 'top', offset: [0, -8] })
+      .on('click', () => showSharedSheet(S.shared, true))
+      .addTo(S.layers.marks);
+  }
+
+  /* Eigenes Versteck: Dreieck in Pink. Die vierte Markerform im Spiel — voller
+     Punkt (Seeker), Ring (Live-Standort), Raute (geteilt), Dreieck (Versteck);
+     die Silhouette trägt, nicht die Farbe. Ist das Versteck rechnerisch
+     ausgeschlossen, wird der weiße Rand rot: dann haben die Jäger dich, oder
+     eine Antwort im Verlauf ist falsch eingetragen. */
+  if (S.hide) {
+    const st = hideStatus();
+    const edge = st.ok ? '#fff'
+      : getComputedStyle(document.body).getPropertyValue('--exclude').trim() || '#c0392b';
+    const el = L.divIcon({
+      className: '', iconSize: [22, 22], iconAnchor: [11, 13],
+      html: '<svg width="22" height="22" viewBox="0 0 22 22" style="overflow:visible">' +
+            '<polygon points="11,2 20,18 2,18" fill="var(--hide)" stroke="' + edge +
+            '" stroke-width="2.5" stroke-linejoin="round" ' +
+            'style="filter:drop-shadow(0 0 1px rgba(0,0,0,.45))"/></svg>',
+    });
+    L.marker([S.hide[1], S.hide[0]], { icon: el, interactive: true })
+      .bindTooltip('Versteck · ' + hideStatusText(st), { direction: 'top', offset: [0, -12] })
+      .addTo(S.layers.marks);
+  }
+
   if (S.thermoFrom) {
     const el = L.divIcon({
       className: '', iconSize: [14, 14], iconAnchor: [7, 7],
@@ -1193,11 +1373,13 @@ function updateStats() {
   const k = liveCount();
   const area = k ? liveArea() : 0;
   const el = document.getElementById('statArea');
-  const unit = document.getElementById('statUnit');
-  if (!k) { el.textContent = '0'; unit.textContent = 'km² möglich'; }
-  else if (area >= 10) { el.textContent = area.toFixed(0); unit.textContent = 'km² möglich'; }
-  else if (area >= 0.1) { el.textContent = area.toFixed(1); unit.textContent = 'km² möglich'; }
-  else { el.textContent = area.toFixed(2); unit.textContent = 'km² möglich'; }
+  /* Die Einheit ist immer „km² möglich" — sie steht im HTML und wird auf
+     schmalen Schirmen per CSS auf „km²" gekürzt. Hier nichts überschreiben,
+     sonst fliegt das <span> für die Kurzform beim ersten Update raus. */
+  if (!k) el.textContent = '0';
+  else if (area >= 10) el.textContent = area.toFixed(0);
+  else if (area >= 0.1) el.textContent = area.toFixed(1);
+  else el.textContent = area.toFixed(2);
   el.style.color = k === 0 ? 'var(--exclude)' : 'var(--keep)';
   el.title = k + ' von ' + hideStations().length + ' Stationen noch möglich';
 }
@@ -1239,6 +1421,63 @@ function setSeeker(pt, center) {
   renderMarks(); renderAsk(); save();
 }
 
+/* ---------- Versteck setzen ---------- */
+/** Versteck setzen; `center` zentriert die Karte darauf. */
+function setHide(pt, center) {
+  S.hide = pt;
+  if (center && S.map) S.map.setView([pt[1], pt[0]], Math.max(S.map.getZoom(), 13));
+  renderMarks(); renderAsk(); save();
+}
+
+/** Versteck per Kartentipp setzen. */
+async function pickHide() {
+  if (cancelPicking()) return;
+  const pt = await pickPoint('Versteck auf der Karte antippen — Esc bricht ab');
+  setHide(pt, false);
+}
+
+/** Ortung als Versteck übernehmen. Bei laufendem Live-Standort ohne Umweg. */
+function hideFromGeo() {
+  if (S.geoPos) { setHide([...S.geoPos], true); return; }
+  if (!navigator.geolocation) { hint('Standort nicht verfügbar'); setTimeout(() => hint(null), 2000); return; }
+  hint('Standort wird gesucht …');
+  navigator.geolocation.getCurrentPosition(
+    (pos) => { hint(null); setHide([pos.coords.longitude, pos.coords.latitude], true); },
+    () => { hint('Standort nicht verfügbar — tippe auf die Karte'); setTimeout(() => hint(null), 2600); },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+}
+
+function askHideCoords() {
+  askCoords({
+    title: 'Versteck eingeben',
+    cur: S.hide || S.seeker || [S.home.x, S.home.y],
+    set: (p) => setHide(p, true),
+  });
+}
+
+/** Womit wird das Versteck gesetzt? */
+function showHideSheet() {
+  const card = document.getElementById('sheetCard');
+  card.innerHTML =
+    '<div class="qtitle" id="sheetTitle">Versteck setzen</div>' +
+    '<div class="answers">' +
+    '<button class="ans yes" data-h="geo">Mein Standort</button>' +
+    '<button class="ans" data-h="map">Auf Karte tippen</button>' +
+    '<button class="ans" data-h="coord">Koordinaten</button>' +
+    '</div><button class="ghost" data-a="">Abbrechen</button>';
+  card.querySelectorAll('[data-h]').forEach((b) => {
+    b.onclick = () => {
+      closeSheet();
+      if (b.dataset.h === 'geo') hideFromGeo();
+      else if (b.dataset.h === 'map') pickHide();
+      else askHideCoords();
+    };
+  });
+  card.querySelectorAll('[data-a]').forEach((b) => { b.onclick = closeSheet; });
+  document.getElementById('sheet').hidden = false;
+}
+
 /** Lesbarer Name der Position: Stadtteil, sonst Lage zum Spielgebiet. */
 function placeName(pt) {
   const k = divIndexAt('d3', pt);
@@ -1255,14 +1494,23 @@ function placeName(pt) {
     : 'Außerhalb des Spielgebiets';
 }
 
-/** Dialog zur Eingabe von Koordinaten. */
-function askCoords() {
+/**
+ * Dialog zur Eingabe von Koordinaten.
+ * `opts.title` / `opts.cur` / `opts.set` steuern Überschrift, Vorbelegung und
+ * Ziel — ohne Argumente setzt er wie bisher die Seeker-Position. Deshalb
+ * nirgends direkt als Klick-Handler hängen: das Klick-Ereignis käme sonst als
+ * `opts` an.
+ */
+function askCoords(opts) {
+  const o = opts || {};
   const card = document.getElementById('sheetCard');
-  const cur = S.seeker || [S.home.x, S.home.y];
+  const cur = o.cur || S.seeker || [S.home.x, S.home.y];
+  const set = o.set || ((p) => setSeeker(p, true));
   card.innerHTML =
-    '<div class="qtitle" id="sheetTitle">Koordinaten eingeben</div>' +
-    '<div class="qmeta">Breite und Länge, z. B. <code>50.94196, 6.95827</code> — ' +
-    'so wie Google Maps sie beim Langdruck anzeigt.</div>' +
+    '<div class="qtitle" id="sheetTitle">' + (o.title || 'Koordinaten eingeben') + '</div>' +
+    '<div class="qmeta">Koordinaten oder ein eingefügter Link — Rheinjagd, ' +
+    'Google Maps, Apple Karten, OpenStreetMap, <code>geo:</code>. Auch ' +
+    '<code>50°56\'31"N 6°57\'30"E</code> geht.</div>' +
     '<input class="sel" id="coordIn" inputmode="decimal" autocomplete="off" ' +
     'placeholder="50.94196, 6.95827" value="' + cur[1].toFixed(5) + ', ' + cur[0].toFixed(5) + '">' +
     '<div class="note" id="coordMsg"></div>' +
@@ -1273,13 +1521,23 @@ function askCoords() {
   const input = card.querySelector('#coordIn');
   const msg = card.querySelector('#coordMsg');
   const apply = () => {
-    const p = parseCoords(input.value);
-    if (!p) { msg.textContent = 'Bitte zwei Zahlen eingeben, z. B. 50.94196, 6.95827'; return; }
+    const r = parseLocationInfo(input.value);
+    if (r && r.error === 'shortlink') {
+      msg.textContent = 'Kurzlinks (maps.app.goo.gl) lassen sich hier nicht auflösen. ' +
+        'Öffne ihn in Maps und teile von dort die Koordinaten.';
+      return;
+    }
+    const p = r && r.pt;
+    if (!p) {
+      msg.textContent = 'Nichts gefunden. Zwei Zahlen wie 50.94196, 6.95827 oder ' +
+        'einen Karten-Link einfügen.';
+      return;
+    }
     if (p[1] < 47 || p[1] > 55 || p[0] < 5 || p[0] > 10) {
       msg.textContent = 'Das liegt weit außerhalb der Region — Breite und Länge vertauscht?';
       return;
     }
-    closeSheet(); setSeeker(p, true);
+    closeSheet(); set(p);
   };
   card.querySelector('#coordOk').onclick = apply;
   input.onkeydown = (e) => { if (e.key === 'Enter') apply(); };
@@ -1288,17 +1546,78 @@ function askCoords() {
   setTimeout(() => { input.focus(); input.select(); }, 40);
 }
 
-/** Akzeptiert "50.94, 6.96", "50.94 6.96" und Google-Maps-Links. */
+const SHARE_PARAM = 'p';   // Name des Koordinaten-Parameters im geteilten Link
+
+/**
+ * Erkennt eine Position in beliebigem eingefügtem Text. Gedacht für das, was
+ * im Spiel tatsächlich im Chat landet: ein Rheinjagd-Link, ein Google-Maps-
+ * Link in seinen diversen Formen, ein geo:-Link, ein OSM-Link, Koordinaten aus
+ * dem Langdruck in Maps — dezimal oder in Grad/Minuten/Sekunden.
+ *
+ * Gibt `{ pt: [lon, lat], how }` zurück, bei einem nicht auflösbaren Kurzlink
+ * `{ error: 'shortlink' }`, sonst `null`. Reihenfolge ist Absicht: erst die
+ * eindeutigen Muster, ganz zuletzt „irgendwo stehen zwei Zahlen“ — sonst
+ * fischt man aus einer URL die Zoomstufe statt der Koordinate.
+ */
+function parseLocationInfo(text) {
+  const txt = String(text || '').trim();
+  if (!txt) return null;
+  const N = '(-?\\d+(?:\\.\\d+)?)';
+  const ok = (lat, lon, how) => {
+    lat = parseFloat(lat); lon = parseFloat(lon);
+    if (!isFinite(lat) || !isFinite(lon)) return null;
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+    return { pt: [lon, lat], how };
+  };
+
+  // Kurzlinks lassen sich ohne Netz nicht auflösen — ehrlich melden statt
+  // irgendeine Zahl aus der URL zu raten.
+  if (/(?:maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs)/i.test(txt)) return { error: 'shortlink' };
+
+  const pats = [
+    // Rheinjagd-Link: #p=lat,lon
+    [new RegExp('[#&?]' + SHARE_PARAM + '=' + N + '%2C' + N, 'i'), 'rheinjagd'],
+    [new RegExp('[#&?]' + SHARE_PARAM + '=' + N + ',' + N), 'rheinjagd'],
+    // geo:lat,lon
+    [new RegExp('geo:' + N + ',' + N, 'i'), 'geo'],
+    // Google/Apple: ?q=, ?query=, ?ll=, ?daddr=, ?destination=
+    [new RegExp('[?&](?:q|query|ll|sll|daddr|destination|center)=' + N + '%2C' + N, 'i'), 'maps'],
+    [new RegExp('[?&](?:q|query|ll|sll|daddr|destination|center)=' + N + ',' + N, 'i'), 'maps'],
+    // Google-Ortsdaten: !3dlat!4dlon — der Ort selbst, deshalb vor dem
+    // Kartenausschnitt @lat,lon (der nur die Bildmitte ist).
+    [new RegExp('!3d' + N + '!4d' + N), 'maps'],
+    [new RegExp('@' + N + ',' + N), 'maps'],
+    // OpenStreetMap: #map=15/lat/lon
+    [new RegExp('map=\\d+(?:\\.\\d+)?\\/' + N + '\\/' + N, 'i'), 'osm'],
+  ];
+  for (const [re, how] of pats) {
+    const m = txt.match(re);
+    if (m) { const r = ok(m[1], m[2], how); if (r) return r; }
+  }
+
+  // Grad/Minuten/Sekunden: 50°56'31.1"N 6°57'29.8"E
+  const dms = txt.match(
+    /(\d+)[°\s]+(\d+)['′\s]+([\d.]+)["″\s]*([NS])[,\s]+(\d+)[°\s]+(\d+)['′\s]+([\d.]+)["″\s]*([EWO])/i);
+  if (dms) {
+    const d2d = (d, m, sec, sign) =>
+      (+d + +m / 60 + +sec / 3600) * (/[SW]/i.test(sign) ? -1 : 1);
+    const r = ok(d2d(dms[1], dms[2], dms[3], dms[4]), d2d(dms[5], dms[6], dms[7], dms[8]), 'dms');
+    if (r) return r;
+  }
+
+  // Zwei blanke Zahlen — nur wenn kein Link im Text steht, sonst erwischt man
+  // Zoomstufen, Marker-IDs oder Zeitstempel.
+  if (!/https?:\/\//i.test(txt)) {
+    const nums = txt.match(/-?\d+(?:\.\d+)?/g);
+    if (nums && nums.length >= 2) return ok(nums[0], nums[1], 'zahlen');
+  }
+  return null;
+}
+
+/** Wie `parseLocationInfo`, aber nur die Koordinate (oder `null`). */
 function parseCoords(s) {
-  const txt = String(s);
-  const url = txt.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-  if (url) return [parseFloat(url[2]), parseFloat(url[1])];
-  // Zahlen mit Punkt als Dezimaltrenner; Komma gilt nur als Trennzeichen.
-  const nums = txt.match(/-?\d+(?:\.\d+)?/g);
-  if (!nums || nums.length < 2) return null;
-  const lat = parseFloat(nums[0]), lon = parseFloat(nums[1]);
-  if (!isFinite(lat) || !isFinite(lon)) return null;
-  return [lon, lat];
+  const r = parseLocationInfo(s);
+  return r && r.pt ? r.pt : null;
 }
 
 function hint(text) {
@@ -1327,11 +1646,17 @@ function renderAsk() {
       '<div class="setgrid">' +
       '<button class="btn flat" id="btnPick">Auf Karte tippen</button>' +
       '<button class="btn flat" id="btnCoord">Koordinaten</button>' +
-      '</div>';
+      '</div>' +
+      /* Auch ohne Jäger-Position setzbar: als Verstecker steht man im
+         Versteck, lange bevor der erste Standort im Chat ankommt. */
+      '<div class="setgrid one">' +
+      '<button class="btn flat" id="btnHide">' +
+      (S.hide ? 'Versteck ändern' : 'Versteck setzen') + '</button></div>';
     document.getElementById('btnGeo').onclick = useGeolocation;
     document.getElementById('btnHome').onclick = () => setSeeker([S.home.x, S.home.y], true);
     document.getElementById('btnPick').onclick = pickSeeker;
-    document.getElementById('btnCoord').onclick = askCoords;
+    document.getElementById('btnCoord').onclick = () => askCoords();
+    document.getElementById('btnHide').onclick = showHideSheet;
     return;
   }
 
@@ -1361,7 +1686,37 @@ function renderAsk() {
   bar.querySelector('#pGeo').onclick = useGeolocation;
   bar.querySelector('#pMap').onclick = pickSeeker;
   bar.querySelector('#pHome').onclick = () => setSeeker([S.home.x, S.home.y], true);
-  bar.querySelector('#pCoord').onclick = askCoords;
+  bar.querySelector('#pCoord').onclick = () => askCoords();
+
+  /* Versteck-Leiste: zweite Position in eigener Farbe, damit die beiden nie
+     verwechselt werden. Solange keine gesetzt ist, steht hier nur ein Knopf. */
+  if (!S.hide) {
+    const set = document.createElement('div');
+    set.className = 'setgrid one';
+    set.innerHTML = '<button class="btn flat" id="btnHide">Versteck setzen</button>';
+    box.appendChild(set);
+    set.querySelector('#btnHide').onclick = showHideSheet;
+  } else {
+    const st = hideStatus();
+    const hb = document.createElement('div');
+    hb.className = 'posbar forhide';
+    hb.innerHTML =
+      '<div class="poswho"><span class="posdot"></span>' +
+      '<div><div class="posname">Versteck · ' + esc(placeName(S.hide)) + '</div>' +
+      '<div class="poscoord' + (st.ok ? '' : st.illegal ? ' warn' : ' bad') + '">' +
+      hideStatusText(st) + '</div></div></div>' +
+      '<div class="posacts">' +
+      '<button class="minibtn" id="hGeo" title="Versteck = mein Standort">GPS</button>' +
+      '<button class="minibtn" id="hMap" title="Versteck auf der Karte antippen">Karte</button>' +
+      '<button class="minibtn" id="hCoord" title="Versteck als Koordinaten">Koord.</button>' +
+      '<button class="minibtn" id="hOff" title="Versteck löschen" aria-label="Versteck löschen">✕</button>' +
+      '</div>';
+    box.appendChild(hb);
+    hb.querySelector('#hGeo').onclick = hideFromGeo;
+    hb.querySelector('#hMap').onclick = pickHide;
+    hb.querySelector('#hCoord').onclick = askHideCoords;
+    hb.querySelector('#hOff').onclick = () => { S.hide = null; renderMarks(); renderAsk(); save(); };
+  }
 
   const frag = document.createDocumentFragment();
   for (const grp of buildCatalog()) {
@@ -1389,6 +1744,7 @@ function renderAsk() {
       const row = document.createElement('button');
       row.className = 'qrow';
       const ev = q.needsSecond || q.type === 'tentacle' ? null : evaluate(q);
+      const ha = hideAnswer(q);
 
       let gain = '';
       if (ev) {
@@ -1406,9 +1762,22 @@ function renderAsk() {
         gain = '<div class="gain"><span class="gaintxt">2 Punkte</span></div>';
       }
 
+      /* Steht ein Versteck, ersetzt die wahre Antwort die Kontextzeile: die
+         zeigt sonst nur die Zahl der Jäger-Seite, und zwei unbeschriftete
+         Zahlen nebeneinander wären nicht auseinanderzuhalten. „knapp" steht
+         im Text, nicht nur in der Farbe. */
+      let sub = q.ctx ? q.ctx() : q.sub;
+      if (ha) {
+        sub = esc('Versteck ' + fmtDist(ha.mine) + ' · ' +
+                  (q.type === 'radar' ? 'Radius ' : 'Jäger ') + fmtDist(ha.theirs) +
+                  (ha.near ? ' · knapp' : ''));
+        gain = '<div class="gain"><span class="verdict ' +
+               (ha.near ? 'near' : (ha.ans === 'yes' || ha.ans === 'closer' ? 'yes' : 'no')) +
+               '">' + ANS_LABEL[ha.ans] + '</span></div>';
+      }
       row.innerHTML =
         '<div><div class="qname">' + q.name + '</div>' +
-        '<div class="qsub">' + (q.ctx ? q.ctx() : q.sub) + '</div></div>' + gain;
+        '<div class="qsub">' + sub + '</div></div>' + gain;
       row.onclick = () => openSheet(q);
       body.appendChild(row);
     }
@@ -1447,18 +1816,25 @@ async function openSheet(q) {
 function showSheet(q, ev) {
   const card = document.getElementById('sheetCard');
   const answers = ANSWER_SETS[q.type] || ['yes', 'no'];
+  const ha = hideAnswer(q);
   let meta = q.ctx ? q.ctx() : '';
   if (q.type === 'thermo') meta = 'Tatsächlich gefahren: ' + q.realKm.toFixed(2) + ' km';
 
   let html =
     '<div class="qtitle" id="sheetTitle">' + q.ask + '</div>' +
-    '<div class="qmeta">' + meta + '</div><div class="answers">';
+    '<div class="qmeta">' + meta + '</div>';
+  /* Hier ist Platz für die Namen: gerade sie machen die Zahl prüfbar. Steht
+     da ein Park, neben dem du gar nicht sitzt, fehlt er in den Daten — das
+     sieht man nur, wenn er dasteht. */
+  if (ha) html += '<div class="hidenote' + (ha.near ? ' near' : '') + '">' + hideSheetText(q, ha) + '</div>';
+  html += '<div class="answers">';
 
   for (const a of answers) {
     const o = ev && ev.opts.find((x) => x.answer === a);
     const cls = (a === 'no' || a === 'further' || a === 'colder') ? 'no' : 'yes';
     const sub = o ? fmtArea(o.area) + ' km² · ' + o.keep + ' Stat.' : '';
-    html += '<button class="ans ' + cls + '" data-a="' + a + '">' +
+    html += '<button class="ans ' + cls + (ha && ha.ans === a ? ' true' : '') +
+            '" data-a="' + a + '">' +
             ANS_LABEL[a] + (sub ? '<small>' + sub + '</small>' : '') + '</button>';
   }
   html += '</div><button class="ghost" data-a="">Abbrechen</button>';
@@ -1472,6 +1848,18 @@ function showSheet(q, ev) {
     };
   });
   document.getElementById('sheet').hidden = false;
+}
+
+/** Die wahre Antwort im Dialog, mit beiden Entfernungen und beiden Orten. */
+function hideSheetText(q, ha) {
+  const side = (label, km, name) =>
+    label + ' ' + fmtDist(km) + (name ? ' · ' + esc(name) : '');
+  const line = q.type === 'radar'
+    ? side('Versteck', ha.mine) + ' — Radius ' + fmtDist(ha.theirs)
+    : side('Versteck', ha.mine, ha.mineName) + ' — ' + side('Jäger', ha.theirs, ha.theirsName);
+  return line + ' → <b>' + ANS_LABEL[ha.ans].toUpperCase() + '</b>' +
+         (ha.near ? '<br>Unterschied nur ' + Math.round(ha.margin * 1000) +
+                    ' m — das entscheidet ihr besser vor Ort.' : '');
 }
 
 function showTentacleSheet(q) {
@@ -1644,11 +2032,8 @@ function renderHist() {
 /* ---------- Gebiet-Tab ---------- */
 function renderSetup() {
   const box = document.getElementById('tabSetup');
-  const all = S.stations.length;
   const active = hideStations();
   const live = liveStations();
-  const inK = active.filter((s) => S.sf.inKoeln[s.i]).length;
-  const outPct = active.length ? Math.round(((active.length - inK) / active.length) * 100) : 0;
   const manual = [...S.manual].filter((i) => kindOk(S.stations[i]));
   const endg = [...S.endgame].filter((i) => kindOk(S.stations[i]));
   const forced = [...S.force].filter((i) => kindOk(S.stations[i]));
@@ -1672,21 +2057,17 @@ function renderSetup() {
     '<div class="catrow"><b>Stationen und Radien auf der Karte</b>' +
     '<button class="tgl" role="switch" aria-checked="' + !!S.showZones + '" id="zoneShow" ' +
     'aria-label="Stationen und Versteckradien auf der Karte"></button></div>' +
-    '<div class="note">Der Hider versteckt sich innerhalb von ' + S.hideRadiusM +
-    ' m zu einer zugelassenen Station. Eingeschaltet zeigt die Karte jede noch ' +
-    'mögliche Station als Punkt und ihren Kreis — im Zentrum überlappen die ' +
-    'Kreise stark. Punkt antippen, um eine Station von Hand zu behandeln.</div>' +
+    '<div class="note">Punkt antippen, um eine Station von Hand zu behandeln.</div>' +
     '<button class="btn" id="zoneApply" hidden>Übernehmen</button>' +
     '</div>' +
 
-    /* --- Stationen: eine Bilanzzeile, dann nur noch das, was man zurücknehmen
-       kann. Die Diagnosewerte (Spielgebietsfläche, Anteil außerhalb Kölns)
-       standen früher hier und sind auf Benes Wunsch raus — sie sagten nichts,
-       woraufhin man etwas getan hätte. --- */
+    /* --- Stationen: die Zahl in der Überschrift, darunter nur noch das, was
+       man zurücknehmen kann. Die Erklärtexte und Diagnosewerte (Bilanzzeile,
+       Spielgebietsfläche, Anteil außerhalb Kölns, Toleranzregel) standen
+       früher hier und sind auf Benes Wunsch raus — sie sagten nichts,
+       woraufhin man etwas getan hätte (Runde 14 und 18). --- */
     '<div class="group"><div class="grouphd">Stationen' +
     ' <span class="ghint">' + live.length + ' von ' + active.length + ' möglich</span></div>' +
-    '<div class="catrow"><b>' + all + ' erfasst · ' + active.length + ' zugelassene Arten · ' +
-    (active.length - live.length - manual.length) + ' durch Antworten raus</b></div>' +
     (manual.length
       ? '<div class="catrow"><b>Von Hand ausgeschlossen</b><span class="cnt">' + manual.length + '</span></div>' +
         manual.map((i) => stRow(i, 'manual')).join('')
@@ -1699,15 +2080,6 @@ function renderSetup() {
       ? '<div class="catrow"><b>Trotzdem möglich gelassen</b><span class="cnt">' + forced.length + '</span></div>' +
         forced.map((i) => stRow(i, 'force')).join('')
       : '') +
-    '<div class="note">Fällt eine Station durch eine Antwort, fällt ihre ganze ' +
-    'Zone weg. Läuft die Grenze einer Frage genau durch eine Station (5 m ' +
-    'Toleranz), bleibt sie vorsichtshalber stehen.' +
-    (outPct > 0
-      ? ' ' + outPct + ' % der Stationen liegen außerhalb Kölns — dort gibt es ' +
-        'keine Stadtteil- und Bezirksgrenzen, diese beiden Fragearten schließen ' +
-        'sie also nie aus.'
-      : '') +
-    '</div>' +
     '</div>' +
 
     '<div class="group"><div class="grouphd">Startpunkt' +
@@ -1833,10 +2205,7 @@ function renderData() {
 
   const intro = document.createElement('div');
   intro.className = 'note';
-  intro.textContent = 'Diese Orte sind die Antwortpunkte der Matching- und ' +
-    'Measuring-Fragen („nächstes Kino“, „näher am nächsten Zoo“) — nicht die ' +
-    'Verstecke. Schalte ab, was eure Gruppe nicht anerkennt: der Ort zählt dann ' +
-    'nie mehr als nächstgelegener. Die Berechnung passt sich sofort an.';
+  intro.textContent = 'Orte für Matching- und Measuring-Fragen';
   box.appendChild(intro);
 
   const actions = document.createElement('div');
@@ -1880,10 +2249,7 @@ function renderData() {
     ['d2', 'd3'].map((k) =>
       '<button class="chip poi" data-div="' + k + '" aria-pressed="' + !!S.showDiv[k] + '">' +
       esc(S.data.divisions[k].label) + 'e</button>').join('') +
-    '</div>' +
-    '<div class="note">Die Linien der Matching-Fragen „gleicher Stadtbezirk“ ' +
-    'und „gleicher Stadtteil“. Auf eine Linie tippen zeigt den Namen. Außerhalb ' +
-    'Kölns gibt es keine — dort schließen diese beiden Fragen nie etwas aus.</div>';
+    '</div>';
   box.appendChild(divSel);
   divSel.querySelectorAll('.chip[data-div]').forEach((b) => {
     b.onclick = () => {
@@ -2090,6 +2456,7 @@ function save() {
   try {
     localStorage.setItem('rheinjagd', JSON.stringify({
       seeker: S.seeker,
+      hide: S.hide,
       home: S.home,
       hideRadiusM: S.hideRadiusM, hideKinds: S.hideKinds,
       showZones: S.showZones,
@@ -2100,6 +2467,7 @@ function save() {
       customPois: S.customPois,
       poiCat: S.poiCat,
       showDiv: S.showDiv,
+      shared: S.shared,
       live: S.geoWatch !== null,
     }));
   } catch (e) { /* privater Modus: kein Problem */ }
@@ -2111,6 +2479,7 @@ function load() {
     if (!raw) return false;
     const d = JSON.parse(raw);
     if (d.seeker) S.seeker = d.seeker;
+    if (Array.isArray(d.hide) && isFinite(d.hide[0]) && isFinite(d.hide[1])) S.hide = d.hide;
     if (d.home && isFinite(d.home.x) && isFinite(d.home.y)) {
       const untouched = Math.abs(d.home.x - HOME_LEGACY.x) < 1e-5 &&
                         Math.abs(d.home.y - HOME_LEGACY.y) < 1e-5;
@@ -2144,9 +2513,175 @@ function load() {
     // Anzeige läuft jetzt über genau eine Kategorie.
     if (typeof d.poiCat === 'string' && CATS[d.poiCat]) S.poiCat = d.poiCat;
     if (d.showDiv) S.showDiv = { d2: !!d.showDiv.d2, d3: !!d.showDiv.d3 };
+    if (d.shared && isFinite(d.shared.x) && isFinite(d.shared.y)) S.shared = d.shared;
     S.wantLive = !!d.live;   // erst nach initMap() wirklich starten
     return true;
   } catch (e) { return false; }
+}
+
+/* ---------- Standort teilen ---------- */
+
+/** Lesbares Alter einer geteilten Position. */
+function sharedAge(t) {
+  const min = Math.max(0, Math.round((Date.now() / 1000 - t) / 60));
+  if (min < 1) return 'gerade eben';
+  if (min < 60) return 'vor ' + min + ' Min.';
+  const h = Math.floor(min / 60);
+  return 'vor ' + h + ' Std. ' + (min % 60) + ' Min.';
+}
+
+/**
+ * Link auf eine Position bauen. Die Koordinaten stecken im Fragment (`#`) —
+ * das schickt der Browser nie an den Server, die Position bleibt also
+ * zwischen den beiden Chats. Fünf Nachkommastellen sind rund 1 m.
+ */
+function shareUrlFor(pt, name) {
+  const base = location.origin + location.pathname + location.search;
+  const sp = new URLSearchParams();
+  sp.set(SHARE_PARAM, pt[1].toFixed(5) + ',' + pt[0].toFixed(5));
+  if (name) sp.set('n', name);
+  sp.set('t', String(Math.round(Date.now() / 1000)));
+  return base + '#' + sp.toString();
+}
+
+/** Dialog „Standort teilen": welche Position, dann Teilen-Menü oder Kopieren. */
+function showShareSheet() {
+  const card = document.getElementById('sheetCard');
+  const opts = [];
+  if (S.geoPos) opts.push({ k: 'live', label: 'Mein aktueller Standort', pt: S.geoPos });
+  if (S.seeker) opts.push({ k: 'seeker', label: 'Seeker-Position', pt: S.seeker });
+  opts.push({ k: 'home', label: S.home.name, pt: [S.home.x, S.home.y] });
+
+  if (!S.geoPos && !S.seeker) {
+    card.innerHTML =
+      '<div class="qtitle" id="sheetTitle">Standort teilen</div>' +
+      '<div class="note">Es gibt noch keine Position zum Teilen. Schalte oben ' +
+      'die Ortung ein oder setze eine Position im Fragen-Tab.</div>' +
+      '<button class="ghost" data-a="">Schließen</button>';
+    card.querySelectorAll('[data-a]').forEach((b) => { b.onclick = closeSheet; });
+    document.getElementById('sheet').hidden = false;
+    return;
+  }
+
+  let sel = opts[0];
+  const render = () => {
+    const url = shareUrlFor(sel.pt, placeName(sel.pt));
+    card.innerHTML =
+      '<div class="qtitle" id="sheetTitle">Standort teilen</div>' +
+      '<div class="qmeta">Der Link enthält die Koordinaten. Wer ihn antippt, ' +
+      'bekommt die Position in der App angeboten.</div>' +
+      '<div class="chips">' +
+      opts.map((o) => '<button class="chip" data-k="' + o.k + '" aria-pressed="' +
+        (o.k === sel.k) + '">' + esc(o.label) + '</button>').join('') +
+      '</div>' +
+      '<div class="note">' + sel.pt[1].toFixed(5) + ', ' + sel.pt[0].toFixed(5) +
+      ' · ' + esc(placeName(sel.pt)) + '</div>' +
+      /* Als Verstecker steht man im Versteck — „Mein aktueller Standort" ist
+         dann genau die Koordinate, die niemand bekommen soll. Gemeldet, nicht
+         verboten: es kann Gründe geben, sie trotzdem zu schicken. */
+      (S.hide && distKm(sel.pt[0], sel.pt[1], S.hide[0], S.hide[1]) < 0.15
+        ? '<div class="note warn">Das ist praktisch dein Versteck ('
+          + Math.round(distKm(sel.pt[0], sel.pt[1], S.hide[0], S.hide[1]) * 1000)
+          + ' m entfernt).</div>'
+        : '') +
+      '<input class="sel" id="shareUrl" readonly value="' + esc(url) + '">' +
+      '<div class="note" id="shareMsg"></div>' +
+      '<div class="answers">' +
+      (navigator.share ? '<button class="ans yes" id="shareGo">Teilen …</button>' : '') +
+      '<button class="ans ' + (navigator.share ? 'no' : 'yes') + '" id="shareCopy">' +
+      'Link kopieren</button>' +
+      '</div><button class="ghost" data-a="">Schließen</button>';
+
+    const msg = card.querySelector('#shareMsg');
+    card.querySelectorAll('.chip[data-k]').forEach((b) => {
+      b.onclick = () => { sel = opts.find((o) => o.k === b.dataset.k); render(); };
+    });
+    const go = card.querySelector('#shareGo');
+    if (go) go.onclick = () => {
+      navigator.share({ title: 'Rheinjagd — Standort', text: placeName(sel.pt), url })
+        .catch(() => { /* abgebrochen ist kein Fehler */ });
+    };
+    card.querySelector('#shareCopy').onclick = async () => {
+      const inp = card.querySelector('#shareUrl');
+      try {
+        await navigator.clipboard.writeText(url);
+        msg.textContent = 'Kopiert — jetzt im Chat einfügen.';
+      } catch (e) {
+        inp.focus(); inp.select();
+        msg.textContent = 'Markiert — mit Strg/⌘+C kopieren.';
+      }
+    };
+    card.querySelectorAll('[data-a]').forEach((b) => { b.onclick = closeSheet; });
+  };
+  render();
+  document.getElementById('sheet').hidden = false;
+}
+
+/** Geteilte Position aus der Adresse lesen (`#p=lat,lon&n=…&t=…`). */
+function sharedFromUrl() {
+  const raw = (location.hash || '').replace(/^#/, '');
+  if (!raw) return null;
+  let sp;
+  try { sp = new URLSearchParams(raw); } catch (e) { return null; }
+  const v = sp.get(SHARE_PARAM);
+  if (!v) return null;
+  const pt = parseCoords(v);
+  if (!pt) return null;
+  const t = parseInt(sp.get('t') || '', 10);
+  return { x: pt[0], y: pt[1], name: sp.get('n') || '', t: isFinite(t) ? t : 0 };
+}
+
+/** Steht eine Position in der Adresse, sie anbieten und die Adresse säubern. */
+function offerSharedFromUrl() {
+  const incoming = sharedFromUrl();
+  if (!incoming) return;
+  clearUrlShare();
+  if (S.map) S.map.setView([incoming.y, incoming.x], Math.max(S.map.getZoom(), 14));
+  showSharedSheet(incoming, false);
+}
+
+/** Die Adresse wieder säubern, damit ein Reload nicht erneut fragt. */
+function clearUrlShare() {
+  try { history.replaceState(null, '', location.pathname + location.search); }
+  catch (e) { location.hash = ''; }
+}
+
+/**
+ * Angebot für eine empfangene Position. Bewusst eine Rückfrage und keine
+ * stille Übernahme: ein Link aus dem Chat darf die Bezugsposition der eigenen
+ * Fragen nicht einfach überschreiben.
+ */
+function showSharedSheet(sh, onMap) {
+  const card = document.getElementById('sheetCard');
+  const where = placeName([sh.x, sh.y]);
+  card.innerHTML =
+    '<div class="qtitle" id="sheetTitle">Geteilter Standort</div>' +
+    '<div class="qmeta">' + (sh.name ? esc(sh.name) + ' · ' : '') + where + ' · ' +
+    sh.y.toFixed(5) + ', ' + sh.x.toFixed(5) +
+    (sh.t ? ' · ' + sharedAge(sh.t) : '') + '</div>' +
+    '<div class="answers">' +
+    '<button class="ans yes" id="shTake">Als Seeker-Position setzen</button>' +
+    (onMap ? '' : '<button class="ans yes" id="shMark">Nur auf der Karte zeigen</button>') +
+    (onMap ? '<button class="ans no" id="shDrop">Markierung entfernen</button>' : '') +
+    '</div>' +
+    '<div class="note">„Seeker-Position" heißt: alle neuen Fragen beziehen sich ' +
+    'auf diesen Punkt. Schon beantwortete Fragen bleiben unberührt — die ' +
+    'behalten ihre eigenen Koordinaten.</div>' +
+    '<button class="ghost" data-a="">' + (onMap ? 'Schließen' : 'Verwerfen') + '</button>';
+
+  const take = card.querySelector('#shTake');
+  if (take) take.onclick = () => { closeSheet(); setSeeker([sh.x, sh.y], true); };
+  const mark = card.querySelector('#shMark');
+  if (mark) mark.onclick = () => {
+    closeSheet();
+    S.shared = sh;
+    renderMarks(); save();
+    if (S.map) S.map.setView([sh.y, sh.x], Math.max(S.map.getZoom(), 14));
+  };
+  const drop = card.querySelector('#shDrop');
+  if (drop) drop.onclick = () => { closeSheet(); S.shared = null; renderMarks(); save(); };
+  card.querySelectorAll('[data-a]').forEach((b) => { b.onclick = closeSheet; });
+  document.getElementById('sheet').hidden = false;
 }
 
 /* ---------- Geolocation ---------- */
@@ -2225,40 +2760,124 @@ function initTabs() {
   tabs.forEach((t) => {
     t.onclick = () => {
       const want = t.dataset.tab;
+      const wasTab = t.getAttribute('aria-selected') === 'true' ? want : null;
       tabs.forEach((x) => x.setAttribute('aria-selected', String(x === t)));
       for (const [key, id] of Object.entries(TAB_IDS)) {
         document.getElementById(id).hidden = key !== want;
       }
       if (want === 'data') renderData();
       if (want === 'setup') renderSetup();
+      // Auf dem Handy: ein Reiter holt das Panel hoch. Nochmal auf den schon
+      // offenen Reiter klappt es wieder zu — das ist neben dem Griff die
+      // zweite Handbewegung zum Schließen.
+      if (isNarrow()) setPanelOpen(!(S.panelOpen && want === wasTab));
     };
   });
+}
+
+/* ---------- Panel auf-/zuklappen (nur schmale Schirme) ----------
+   Auf dem Handy soll die Karte den meisten Platz haben (Bene, Runde 17). Das
+   Panel steht deshalb standardmäßig zugeklappt da — nur Griff und Reiterleiste
+   — und fährt hoch, sobald man einen Reiter antippt. Zugeklappt wird es nur
+   von Hand (Griff oder nochmal auf den offenen Reiter); nichts schließt sich
+   von selbst, während man daran arbeitet.
+   Auf dem Desktop (≥900px) ist das Panel eine Spalte neben der Karte — dort
+   gibt es weder Griff noch Zuklappen. */
+const PANEL_KEY = 'rheinjagd-panel';
+
+/** Schmaler Schirm? Dieselbe Schwelle wie im Stylesheet. */
+function isNarrow() { return !matchMedia('(min-width:900px)').matches; }
+
+/** Zugeklappt/aufgeklappt setzen. `h` ist die gemerkte Arbeitshöhe in px. */
+function setPanelOpen(open, save2) {
+  const panel = document.getElementById('panel');
+  const grip = document.getElementById('grip');
+  S.panelOpen = !!open;
+  panel.classList.toggle('collapsed', !S.panelOpen);
+  grip.setAttribute('aria-expanded', String(S.panelOpen));
+  if (S.panelOpen && S.panelH) {
+    panel.style.height = S.panelH + 'px';
+    panel.style.maxHeight = S.panelH + 'px';
+  } else {
+    // Zugeklappt darf keine feste Höhe stehen bleiben, sonst bleibt der
+    // leere Rest des Panels als Streifen über der Karte liegen.
+    panel.style.height = '';
+    panel.style.maxHeight = '';
+  }
+  if (S.map) S.map.invalidateSize();
+  if (save2 !== false) savePanel();
+}
+
+function savePanel() {
+  try {
+    localStorage.setItem(PANEL_KEY, JSON.stringify({ open: S.panelOpen, h: S.panelH }));
+  } catch (e) { /* privater Modus: kein Problem */ }
 }
 
 function initGrip() {
   const grip = document.getElementById('grip');
   const panel = document.getElementById('panel');
-  let startY = 0, startH = 0, dragging = false;
+
+  // Gemerkte Höhe und letzter Zustand. Das ist eine Oberflächen-Einstellung
+  // wie das Thema, kein Spielstand — „Neues Spiel" fasst sie nicht an.
+  try {
+    const d = JSON.parse(localStorage.getItem(PANEL_KEY) || '{}');
+    if (d.h >= 120) S.panelH = d.h;
+    if (typeof d.open === 'boolean') S.panelOpen = d.open;
+  } catch (e) { /* egal */ }
+  setPanelOpen(S.panelOpen, false);
+
+  let startY = 0, startH = 0, dragging = false, moved = false;
   const down = (e) => {
-    dragging = true; startY = (e.touches ? e.touches[0] : e).clientY;
+    if (!isNarrow()) return;
+    dragging = true; moved = false;
+    startY = (e.touches ? e.touches[0] : e).clientY;
     startH = panel.getBoundingClientRect().height;
     e.preventDefault();
   };
   const move = (e) => {
     if (!dragging) return;
     const y = (e.touches ? e.touches[0] : e).clientY;
+    // Erst ab 6 px gilt es als Ziehen — darunter ist es ein Tipp auf den
+    // Griff, und der soll auf-/zuklappen statt die Höhe um 2 px zu ändern.
+    if (!moved && Math.abs(y - startY) < 6) return;
+    if (!moved) {
+      moved = true;
+      // Aus dem zugeklappten Zustand heraus hochziehen klappt auf.
+      if (!S.panelOpen) { setPanelOpen(true, false); startH = panel.getBoundingClientRect().height; }
+    }
     const h = Math.max(120, Math.min(window.innerHeight * 0.85, startH - (y - startY)));
     panel.style.height = h + 'px';
     panel.style.maxHeight = h + 'px';
+    S.panelH = Math.round(h);
     if (S.map) S.map.invalidateSize();
   };
-  const up = () => { dragging = false; };
+  const up = () => {
+    if (!dragging) return;
+    dragging = false;
+    if (moved) savePanel();
+    else setPanelOpen(!S.panelOpen);   // kurzer Tipp auf den Griff
+  };
   grip.addEventListener('mousedown', down);
   grip.addEventListener('touchstart', down, { passive: false });
   window.addEventListener('mousemove', move);
   window.addEventListener('touchmove', move, { passive: false });
   window.addEventListener('mouseup', up);
   window.addEventListener('touchend', up);
+  // Tastatur: der Griff ist ein Button, Enter/Space klappen um. Die Maus-
+  // Variante läuft über mouseup, sonst käme der Klick doppelt.
+  grip.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    setPanelOpen(!S.panelOpen);
+  });
+  // Wird das Fenster breit (Desktop-Layout), muss die per Hand gesetzte
+  // Pixelhöhe weg — sonst hängt die Seitenspalte auf Handyhöhe fest.
+  matchMedia('(min-width:900px)').addEventListener('change', (e) => {
+    if (e.matches) { panel.style.height = ''; panel.style.maxHeight = ''; }
+    else setPanelOpen(S.panelOpen, false);
+    if (S.map) S.map.invalidateSize();
+  });
 }
 
 function initTheme() {
@@ -2304,8 +2923,11 @@ function boot() {
   // Neues Spiel: Verlauf, Position und Stationsmarkierungen zurück,
   // Gebietseinstellungen bleiben.
   document.getElementById('btnReset').onclick = () => {
-    S.history = []; S.seeker = null; S.thermoFrom = null;
+    // Das Versteck gehört zur Runde, nicht zur Oberfläche: neue Runde,
+    // neues Versteck.
+    S.history = []; S.seeker = null; S.hide = null; S.thermoFrom = null;
     S.manual.clear(); S.endgame.clear(); S.force.clear();
+    S.shared = null;
     cancelPicking();
     renderMarks(); recompute(); drawArea();
   };
@@ -2313,6 +2935,7 @@ function boot() {
     if (e.target.id === 'sheet') closeSheet();
   };
   document.getElementById('btnLive').onclick = toggleLive;
+  document.getElementById('btnShare').onclick = showShareSheet;
   syncLiveButton();
   window.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
@@ -2328,6 +2951,16 @@ function boot() {
   // War der Live-Standort beim letzten Mal an, wieder anschalten. Die
   // Ortungsfreigabe hat der Browser dann bereits.
   if (S.wantLive && !S.noMap) toggleLive();
+
+  /* Kam die App über einen geteilten Link, die Position anbieten — erst nach
+     dem Laden des Spielstands, damit nichts überschrieben wird, und die
+     Adresse danach säubern, damit ein Reload nicht wieder fragt. */
+  offerSharedFromUrl();
+  /* Ist die App schon offen und man tippt im Chat den nächsten Link an, lädt
+     der Browser die Seite nicht neu — er ändert nur das Fragment. Ohne diesen
+     Zuhörer würde genau der zweite geteilte Standort stillschweigend
+     verpuffen. */
+  window.addEventListener('hashchange', offerSharedFromUrl);
 
   if (S.noMap) {
     document.getElementById('map').innerHTML =

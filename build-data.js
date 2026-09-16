@@ -154,7 +154,48 @@ for (const f of bezirke) {
 }
 
 // Ring-Daten bevorzugen, sonst die Stadtdaten
-const pois = dedupe(curate(ring ? ring.pois : raw.pois));
+/* Eigene Kategorie "mangal" (Runde 17, Wunsch von Bene): die Mangal-Döner-
+   Läden als Matching-Frage. Sie stehen nicht in koeln-raw.json — Overpass ist
+   aus der Bauumgebung nicht erreichbar, die Liste wurde deshalb einmalig über
+   den Browser geholt und hier festgeschrieben.
+
+   Abfrage (Overpass, 16.09.2026):
+     [out:json];nwr["name"~"Mangal",i](50.60,6.40,51.30,7.45);out center tags;
+   Gefiltert auf Namen, die neben "Mangal" auch "Döner", "LP10" oder
+   "Podolski" enthalten (plus ein Laden, der nur "Mangal" heißt, aber Marke
+   und Website der Kette trägt), und auf 25 km Luftlinie um den Hbf — POI-
+   Daten müssen weiter reichen als das Spielgebiet. Bewusst NICHT dabei:
+   gleichnamige, aber andere Läden (Antep Mangal, Elite Mangal, Mangal
+   Lahmacun/Burger/Baklava an der Weidengasse) und die Firmenadresse am
+   Anna-Schneider-Steig, die kein Laden ist.
+
+   Namen: "Mangal Döner" + Straße, wo mehrere in denselben Stadtteil fallen,
+   sonst Stadtteil bzw. Ort — 18-mal derselbe Eintragsname wäre in der
+   Orte-Liste nicht bedienbar. Stadtteil und Rheinseite rechnet der Build
+   unten wie bei jedem anderen POI. */
+const MANGAL = [
+  ['Mangal Döner Komödienstraße',     50.94161, 6.95597],
+  ['Mangal Döner Weidengasse',        50.94845, 6.95420],
+  ['Mangal Döner Heumarkt',           50.93560, 6.95998],
+  ['Mangal Döner Hohenzollernring',   50.93868, 6.93982],
+  ['Mangal Döner Zülpicher Platz',    50.93051, 6.93940],
+  ['Mangal Döner Nippes',             50.96190, 6.95413],
+  ['Mangal Döner Bonner Straße',      50.92071, 6.95989],
+  ['Mangal Döner Ehrenfeldgürtel',    50.95045, 6.91673],
+  ['Mangal Döner Kalker Hauptstraße', 50.93762, 7.00162],
+  ['Mangal Döner Frankfurter Straße', 50.95865, 7.00938],
+  ['Mangal Döner Schanzenstraße',     50.96503, 7.01668],
+  ['Mangal Döner Ostheim',            50.92929, 7.04175],
+  ['Mangal Döner Porz-Urbach',        50.88163, 7.08133],
+  ['Mangal Döner Grengel',            50.87931, 7.12146],
+  ['Mangal Döner Brühl',              50.82654, 6.90248],
+  ['Mangal Döner Pulheim',            51.01836, 6.76191],
+  ['Mangal Döner Bergheim',           50.95278, 6.64575],
+  ['Mangal Döner Sankt Augustin',     50.77716, 7.18775],
+];
+
+const pois = dedupe(curate(ring ? ring.pois : raw.pois))
+  .concat(MANGAL.map(([n, y, x]) => ({ c: 'mangal', n, x, y })));
 
 // Rheinseite je POI; Stadtteil nur für POIs innerhalb Kölns
 for (const p of pois) {
@@ -213,7 +254,12 @@ const bundle = {
   pois,
 };
 
-fs.writeFileSync(path.join(__dirname, 'data/koeln.json'), JSON.stringify(bundle));
+/* Eingerückt und mit CRLF schreiben — genau so, wie die Datei auf der Platte
+   liegt. Vorher schrieb der Build kompakt, die Datei war aber eingerückt: ein
+   Lauf hätte 35.699 Zeilen zu einer einzigen gemacht und jeden Diff wertlos.
+   In index.html landet sie ohnehin kompakt (build.js stringifyt neu). */
+fs.writeFileSync(path.join(__dirname, 'data/koeln.json'),
+  JSON.stringify(bundle, null, 4).replace(/\n/g, '\r\n'));
 
 const sides = { links: 0, rechts: 0 };
 stadtteile.forEach((f) => sides[f.properties.side]++);

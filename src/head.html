@@ -62,6 +62,11 @@
   --poi:#7e22ce;
   --poi-ui:#7e22ce;
   --zone:#1d4ed8;
+  --div3:#1f2937;
+  /* Versteck-Marker: vierte Markerfarbe, Pink. Kontrast und Abstand zu den
+     schon belegten Kartenfarben in Runde 18 nachgerechnet. */
+  --hide:#be185d;
+  --hide-ui:#be185d;
   --shadow:0 2px 8px rgba(18,22,28,.12);
   --shadow-lg:0 -4px 24px rgba(18,22,28,.16);
 }
@@ -82,6 +87,7 @@
     --map-bg:#1a2029;
     --edge:#5ad4ec;
     --poi-ui:#c084fc;
+    --hide-ui:#f472b6;
     --shadow:0 2px 8px rgba(0,0,0,.4);
     --shadow-lg:0 -4px 24px rgba(0,0,0,.5);
   }
@@ -90,7 +96,7 @@
   --paper:#0f1319; --surface:#171d25; --surface-2:#212a34;
   --ink:#e8edf3; --ink-2:#b3bdc9; --muted:#7d8896; --line:#2c3742;
   --accent:#2bb8d4; --accent-ink:#08222a; --exclude:#e05c4b; --keep:#3fc27f; --warn:#d99b3c;
-  --map-bg:#1a2029; --edge:#5ad4ec; --poi-ui:#c084fc;
+  --map-bg:#1a2029; --edge:#5ad4ec; --poi-ui:#c084fc; --hide-ui:#f472b6;
   --shadow:0 2px 8px rgba(0,0,0,.4); --shadow-lg:0 -4px 24px rgba(0,0,0,.5);
 }
 
@@ -158,16 +164,45 @@ button{cursor:pointer;background:none;border:none}
   background:var(--surface);border-top:1px solid var(--line);
   display:flex;flex-direction:column;min-height:0;
   box-shadow:var(--shadow-lg);z-index:15;
-  height:52dvh;max-height:52dvh;
 }
 @media (min-width:900px){
   #panel{border-top:none;border-left:1px solid var(--line);
          height:auto;max-height:none;box-shadow:none}
 }
-#grip{display:flex;align-items:center;justify-content:center;padding:6px;flex:none;
+/* Griff: ziehen ändert die Höhe, ein kurzer Tipp klappt auf/zu. Deshalb ein
+   echter Button mit aria-expanded und nicht nur eine Linie. */
+#grip{display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:7px 6px 5px;flex:none;width:100%;color:var(--muted);
   cursor:ns-resize;touch-action:none}
-#grip::before{content:'';width:38px;height:4px;border-radius:2px;background:var(--line)}
+#grip .bar{width:38px;height:4px;border-radius:2px;background:var(--line);flex:none}
+#grip svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;
+  stroke-linecap:round;stroke-linejoin:round;transition:transform .18s ease}
+#panel.collapsed #grip svg{transform:rotate(180deg)}
 @media (min-width:900px){#grip{display:none}}
+
+/* Zugeklappt: nur Griff und Reiterleiste, die Karte bekommt den Rest. Gilt
+   nur auf schmalen Schirmen — auf dem Desktop ist das Panel eine Spalte
+   neben der Karte und hat mit der Kartenhöhe nichts zu tun. */
+@media (max-width:899.98px){
+  /* Die Topbar brauchte 475 px Mindestbreite — auf jedem Handy lagen damit
+     „Hell/Dunkel" und „Neues Spiel" außerhalb des Schirms und waren gar
+     nicht erreichbar. Deshalb schmaler: kleinere Schrift, engere Abstände,
+     und die Einheit heißt nur noch „km²" statt „km² möglich". */
+  #topbar{gap:7px;padding:8px 10px}
+  .brand{font-size:17px}
+  .stat{gap:4px}
+  .stat b{font-size:19px}
+  .stat small .long{display:none}
+  .iconbtn{width:31px;height:31px}
+  .iconbtn svg{width:18px;height:18px}
+
+  #panel{height:52dvh;max-height:52dvh}
+  #panel.collapsed{height:auto!important;max-height:none!important}
+  #panel.collapsed .tabbody{display:none}
+}
+/* Unter 360 px reicht es auch gekürzt nicht: lieber den Namen weg als einen
+   Knopf, den man nicht mehr treffen kann. */
+@media (max-width:359.98px){ .brand{display:none} }
 
 .tabs{display:flex;gap:2px;padding:0 8px;border-bottom:1px solid var(--line);flex:none}
 .tab{
@@ -317,7 +352,13 @@ button{cursor:pointer;background:none;border:none}
   padding:8px 10px;border:1px solid var(--line);border-radius:9px;
   background:var(--surface-2);
 }
-.poswho{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+/* flex-basis 150px statt 0: bleibt neben den vier Knöpfen weniger Platz,
+   rutscht die Knopfreihe auf eine zweite Zeile, statt den Ortsnamen auf
+   einen Buchstaben zu quetschen. Das `min-width:0` am inneren Kasten ist
+   nötig, damit die Ellipse überhaupt greift — ohne das lief der Name auf
+   dem Handy unter die Knöpfe. */
+.poswho{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 150px}
+.poswho>div{min-width:0}
 .posdot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex:none;
   box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
 .posname{font-size:13px;font-weight:500;line-height:1.25;
@@ -332,8 +373,29 @@ button{cursor:pointer;background:none;border:none}
 }
 .minibtn:hover{border-color:var(--accent);color:var(--accent)}
 
+/* ===== Verstecker-Seite ===== */
+.posbar.forhide{border-color:color-mix(in srgb,var(--hide-ui) 45%,var(--line))}
+.posbar.forhide .posdot{background:var(--hide-ui);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--hide-ui) 22%,transparent)}
+.posbar.forhide .minibtn:hover{border-color:var(--hide-ui);color:var(--hide-ui)}
+.poscoord.bad{color:var(--exclude)}
+.poscoord.warn{color:var(--warn)}
+.verdict{font-family:var(--f-disp);font-size:14px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;white-space:nowrap}
+.verdict.yes{color:var(--keep)}
+.verdict.no{color:var(--exclude)}
+.verdict.near{color:var(--warn)}
+.hidenote{font-size:12px;line-height:1.5;padding:9px 11px;border-radius:8px;
+  background:var(--surface-2);margin-top:-8px}
+.hidenote.near{background:color-mix(in srgb,var(--warn) 16%,var(--surface-2))}
+/* Die wahre Antwort im Dialog hervorheben — sie ist die, die man tippen will. */
+.ans.true{border-color:currentColor;border-width:2.5px;
+  background:color-mix(in srgb,currentColor 10%,transparent)}
+.note.warn{color:var(--warn)}
+
 /* ===== Gebiet-Tab ===== */
 .setgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.setgrid.one{grid-template-columns:1fr}
 .slider{display:flex;align-items:center;gap:10px}
 .slider input[type="range"]{flex:1;accent-color:var(--accent);min-width:0}
 .slider output{font-family:var(--f-disp);font-size:17px;font-weight:700;

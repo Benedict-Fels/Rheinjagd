@@ -35695,6 +35695,150 @@
             "y": 50.89164,
             "st": null,
             "side": "links"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Komödienstraße",
+            "x": 6.95597,
+            "y": 50.94161,
+            "st": "Altstadt-Nord",
+            "side": "links"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Weidengasse",
+            "x": 6.9542,
+            "y": 50.94845,
+            "st": "Altstadt-Nord",
+            "side": "links"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Heumarkt",
+            "x": 6.95998,
+            "y": 50.9356,
+            "st": "Altstadt-Nord",
+            "side": "links"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Hohenzollernring",
+            "x": 6.93982,
+            "y": 50.93868,
+            "st": "Neustadt/Nord",
+            "side": "links"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Zülpicher Platz",
+            "x": 6.9394,
+            "y": 50.93051,
+            "st": "Neustadt/Süd",
+            "side": "links"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Nippes",
+            "x": 6.95413,
+            "y": 50.9619,
+            "st": "Nippes",
+            "side": "links"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Bonner Straße",
+            "x": 6.95989,
+            "y": 50.92071,
+            "st": "Neustadt/Süd",
+            "side": "links"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Ehrenfeldgürtel",
+            "x": 6.91673,
+            "y": 50.95045,
+            "st": "Ehrenfeld",
+            "side": "links"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Kalker Hauptstraße",
+            "x": 7.00162,
+            "y": 50.93762,
+            "st": "Kalk",
+            "side": "rechts"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Frankfurter Straße",
+            "x": 7.00938,
+            "y": 50.95865,
+            "st": "Mülheim",
+            "side": "rechts"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Schanzenstraße",
+            "x": 7.01668,
+            "y": 50.96503,
+            "st": "Mülheim",
+            "side": "rechts"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Ostheim",
+            "x": 7.04175,
+            "y": 50.92929,
+            "st": "Ostheim",
+            "side": "rechts"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Porz-Urbach",
+            "x": 7.08133,
+            "y": 50.88163,
+            "st": "Urbach",
+            "side": "rechts"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Grengel",
+            "x": 7.12146,
+            "y": 50.87931,
+            "st": "Grengel",
+            "side": "rechts"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Brühl",
+            "x": 6.90248,
+            "y": 50.82654,
+            "st": null,
+            "side": "links"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Pulheim",
+            "x": 6.76191,
+            "y": 51.01836,
+            "st": null,
+            "side": "links"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Bergheim",
+            "x": 6.64575,
+            "y": 50.95278,
+            "st": null,
+            "side": "links"
+        },
+        {
+            "c": "mangal",
+            "n": "Mangal Döner Sankt Augustin",
+            "x": 7.18775,
+            "y": 50.77716,
+            "st": null,
+            "side": "rechts"
         }
     ]
 }
