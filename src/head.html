@@ -196,7 +196,11 @@ button{cursor:pointer;background:none;border:none}
   .iconbtn{width:31px;height:31px}
   .iconbtn svg{width:18px;height:18px}
 
-  #panel{height:52dvh;max-height:52dvh}
+  /* Aufgeklappt bekommt das Panel den Schirm (Bene, Runde 19): wer eine Frage
+     einträgt, arbeitet im Panel, die Karte ist in dem Moment nebensächlich.
+     Zugeklappt ist weiterhin der Startzustand, und eine Punktauswahl klappt
+     es kurz herunter — sonst bliebe zum Antippen zu wenig Karte übrig. */
+  #panel{height:78dvh;max-height:78dvh}
   #panel.collapsed{height:auto!important;max-height:none!important}
   #panel.collapsed .tabbody{display:none}
 }

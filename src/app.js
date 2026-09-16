@@ -98,6 +98,7 @@ const S = {
   hideKinds: { rail: true, kvb: true },
   panelOpen: false,            // Handy: Panel aufgeklappt? (Standard: zu, Karte groß)
   panelH: 0,                   // gemerkte Arbeitshöhe des Panels in px (0 = Stylesheet)
+  panelReopen: false,          // war für eine Punktauswahl zugeklappt, soll zurück
   showZones: false,            // Stationspunkte UND Versteckradien auf der Karte
   expanded: {},                  // Titel aufgeklappter Gruppen (Fragen- und Orte-Tab) —
                                   // Standard ist zugeklappt, hier stehen nur Ausnahmen
@@ -653,21 +654,37 @@ function evaluate(q) {
    Verstecker-Seite
    ============================================================
    Dieselben Daten, andere Blickrichtung: statt Stationen auszuschließen wird
-   die Frage vom eigenen Versteck aus beantwortet. Bewusst nur Radar und
-   Measuring — Matching liest man in der Orte-Liste ab (Benes Entscheidung),
-   Thermometer und Tentacles bleiben außen vor. */
+   die Frage vom eigenen Versteck aus beantwortet. Radar, Measuring und
+   Matching (Runde 19) — Thermometer und Tentacles bleiben außen vor. */
 
 /** Entfernung kurz: unter 1 km in Metern, darüber in Kilometern. */
 function fmtDist(km) {
   return km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(2) + ' km';
 }
 
+/** Die zwei nächsten Orte einer Kategorie. Der zweite liefert den Abstand zur
+    Voronoi-Kante, um die es bei Matching-Fragen geht. */
+function nearestTwoAt(cat, pt) {
+  const pois = activePois(cat);
+  let b1 = Infinity, k1 = -1, b2 = Infinity, k2 = -1;
+  for (let k = 0; k < pois.length; k++) {
+    const d = distKm(pt[0], pt[1], pois[k].x, pois[k].y);
+    if (d < b1) { b2 = b1; k2 = k1; b1 = d; k1 = k; }
+    else if (d < b2) { b2 = d; k2 = k; }
+  }
+  return { k: k1, d: b1, poi: pois[k1], k2, d2: b2, poi2: pois[k2] };
+}
+
 /**
  * Die wahre Antwort auf eine Frage, gemessen vom Versteck aus.
  *
- * `mine` und `theirs` sind die beiden Entfernungen in km (beim Radar: eigene
- * Entfernung und Radius), `margin` ihr Abstand zur Entscheidungsgrenze. Liegt
- * der unter der Toleranz, sagt `near` das — die App kennt weder die
+ * `kind` sagt, wie die Werte zu lesen sind:
+ *   'radar'   `mine` = eigene Entfernung, `theirs` = Radius (km)
+ *   'measure' `mine`/`theirs` = die beiden Entfernungen (km), dazu die Namen
+ *   'match'   `mineName`/`theirsName` = die beiden Werte, die verglichen werden
+ *
+ * `margin` ist in allen Fällen der Abstand zur Entscheidungsgrenze in km.
+ * Liegt er unter der Toleranz, sagt `near` das — die App kennt weder die
  * Messgenauigkeit des OSM-Punktes noch den Meter, auf dem du tatsächlich
  * sitzt, und soll dann nicht so tun als ob.
  *
@@ -680,10 +697,18 @@ function hideAnswer(q) {
   const h = S.hide;
   if (!h || !q || !q.seeker) return null;
   const cmp = (mine, theirs, tol, mineName, theirsName) => ({
+    kind: 'measure',
     ans: mine < theirs ? 'closer' : 'further',
     mine, theirs, mineName, theirsName,
     margin: Math.abs(mine - theirs),
     near: Math.abs(mine - theirs) <= tol,
+  });
+  /* Matching vergleicht zwei Werte, keine Entfernungen. Die Marge ist der
+     Abstand zu der Grenze, die die Antwort kippen würde — bei Orten die
+     Voronoi-Kante, bei Verwaltungsebenen die Gebietsgrenze. */
+  const same = (hit, mineName, theirsName, marginKm, tol) => ({
+    kind: 'match', ans: hit ? 'yes' : 'no',
+    mineName, theirsName, margin: marginKm, near: marginKm <= tol,
   });
 
   switch (q.type) {
@@ -691,7 +716,7 @@ function hideAnswer(q) {
       const r = q.mi * MILE_KM;
       const d = distKm(h[0], h[1], q.seeker[0], q.seeker[1]);
       // „innerhalb" schließt den Rand ein — dieselbe Regel wie stationDecider().
-      return { ans: d <= r ? 'yes' : 'no', mine: d, theirs: r,
+      return { kind: 'radar', ans: d <= r ? 'yes' : 'no', mine: d, theirs: r,
                margin: Math.abs(d - r), near: Math.abs(d - r) <= HIDE_NEAR_RADAR_KM };
     }
     case 'measure-poi': {
@@ -707,6 +732,39 @@ function hideAnswer(q) {
     case 'measure-border': {
       return cmp(distToBorderKm(q.level, h), distToBorderKm(q.level, q.seeker),
                  HIDE_NEAR_MEASURE_KM);
+    }
+    case 'match-poi': {
+      const a = nearestTwoAt(q.cat, h), b = nearestAt(q.cat, q.seeker);
+      if (!a.poi || !b.poi) return null;
+      const hit = a.k === b.k;
+      /* Ist mein Ort schon derselbe, zählt die Kante zum zweitnächsten; sonst
+         die Kante zum Ort der Jäger. Genau wie in stationDecider() — stünde
+         hier in beiden Fällen dasselbe, wäre die Marge bei einem Treffer
+         null und jede Matching-Antwort wäre „knapp". */
+      const other = hit ? a.d2 : distKm(h[0], h[1], b.poi.x, b.poi.y);
+      const margin = isFinite(other) ? Math.abs(other - a.d) / 2 : Infinity;
+      return same(hit, a.poi.n, b.poi.n, margin, HIDE_NEAR_MEASURE_KM);
+    }
+    case 'match-div': {
+      if (q.level === 'd1') {
+        const side = (p) => (sideOfLine(p[0], p[1], S.data.rhein) === 1
+          ? 'linksrheinisch' : 'rechtsrheinisch');
+        const a = side(h), b = side(q.seeker);
+        return same(a === b, a, b, distToLineKm(h[0], h[1], S.data.rhein),
+                    HIDE_NEAR_RADAR_KM);
+      }
+      const feats = S.data.divisions[q.level].features;
+      const ai = divIndexAt(q.level, h), bi = divIndexAt(q.level, q.seeker);
+      const dh = distToBorderKm(q.level, h);
+      /* Zwischen zwei Stadtteilgrenzen können in OSM Schlitze von wenigen
+         Zentimetern liegen — der Rudolfplatz fällt in so einen. „Außerhalb"
+         wäre für einen Punkt mitten in Köln eine falsche Auskunft; er liegt
+         auf der Grenze, und genau das steht dann da. */
+      const name = (k, d) => (k >= 0 ? feats[k].name
+        : d <= HIDE_NEAR_RADAR_KM ? 'auf der Grenze' : 'außerhalb');
+      return same(ai >= 0 && ai === bi,
+                  name(ai, dh), name(bi, distToBorderKm(q.level, q.seeker)),
+                  dh, HIDE_NEAR_RADAR_KM);
     }
     default: return null;
   }
@@ -1183,11 +1241,17 @@ function defineExclusionLayer() {
       map.getPanes().overlayPane.appendChild(c);
       map.on('moveend zoomend resize', this._reset, this);
       if (map._zoomAnimated) map.on('zoomanim', this._animZoom, this);
+      /* Zwei-Finger-Zoom feuert **kein** `zoomanim`: Leaflet schiebt dabei
+         fortlaufend `_move()` mit gebrochener Zoomstufe durch und meldet das
+         nur als `zoom`. Ohne diesen Zuhörer stand die rote Fläche während der
+         ganzen Geste still und sprang erst am Ende an ihren Platz. */
+      map.on('zoom', this._onZoom, this);
       this._reset();
     },
     onRemove(map) {
       map.off('moveend zoomend resize', this._reset, this);
       map.off('zoomanim', this._animZoom, this);
+      map.off('zoom', this._onZoom, this);
       if (this._c && this._c.parentNode) this._c.parentNode.removeChild(this._c);
     },
 
@@ -1197,6 +1261,15 @@ function defineExclusionLayer() {
       const scale = this._map.getZoomScale(e.zoom, this._zoom);
       const off = this._map._latLngToNewLayerPoint(this._origin, e.zoom, e.center);
       L.DomUtil.setTransform(this._c, off, scale);
+    },
+
+    /* Laufender Pinch: aktuelle (gebrochene) Zoomstufe und Mitte abgreifen und
+       dieselbe Transformation fahren. `_latLngToNewLayerPoint` rechnet gegen
+       einen frisch bestimmten Pixelursprung, funktioniert also auch mitten in
+       der Geste. */
+    _onZoom() {
+      if (!this._origin) return;
+      this._animZoom({ zoom: this._map.getZoom(), center: this._map.getCenter() });
     },
 
     _reset() {
@@ -1397,13 +1470,16 @@ function updateStats() {
 function onMapClick(e) {
   if (!S.picking) return;
   const pt = [e.latlng.lng, e.latlng.lat];
-  const f = S.picking; S.picking = null; hint(null); f(pt);
+  const f = S.picking; S.picking = null; hint(null);
+  restorePanelAfterPick();
+  f(pt);
 }
 
 /** Laufende Punktauswahl abbrechen (Escape oder erneuter Knopfdruck). */
 function cancelPicking() {
   if (!S.picking) return false;
   S.picking = null; hint(null);
+  restorePanelAfterPick();
   return true;
 }
 
@@ -1627,7 +1703,19 @@ function hint(text) {
 }
 
 function pickPoint(text) {
+  /* Solange man die Karte antippen soll, gehört ihr der Platz. Das Panel
+     steht auf dem Handy bei 78 dvh — bliebe es offen, wäre vom Zielpunkt
+     nichts zu sehen. Danach fährt es von selbst wieder hoch, und der
+     gespeicherte Zustand bleibt unberührt (`save2 = false`). */
+  if (isNarrow() && S.panelOpen) { S.panelReopen = true; setPanelOpen(false, false); }
   return new Promise((res) => { hint(text); S.picking = res; });
+}
+
+/** Panel nach einer Punktauswahl wieder aufklappen, falls es dafür zuklappte. */
+function restorePanelAfterPick() {
+  if (!S.panelReopen) return;
+  S.panelReopen = false;
+  setPanelOpen(true, false);
 }
 
 /* ---------- Fragen-Tab ---------- */
@@ -1768,9 +1856,7 @@ function renderAsk() {
          im Text, nicht nur in der Farbe. */
       let sub = q.ctx ? q.ctx() : q.sub;
       if (ha) {
-        sub = esc('Versteck ' + fmtDist(ha.mine) + ' · ' +
-                  (q.type === 'radar' ? 'Radius ' : 'Jäger ') + fmtDist(ha.theirs) +
-                  (ha.near ? ' · knapp' : ''));
+        sub = esc(hideRowText(ha) + (ha.near ? ' · knapp' : ''));
         gain = '<div class="gain"><span class="verdict ' +
                (ha.near ? 'near' : (ha.ans === 'yes' || ha.ans === 'closer' ? 'yes' : 'no')) +
                '">' + ANS_LABEL[ha.ans] + '</span></div>';
@@ -1850,16 +1936,31 @@ function showSheet(q, ev) {
   document.getElementById('sheet').hidden = false;
 }
 
-/** Die wahre Antwort im Dialog, mit beiden Entfernungen und beiden Orten. */
+/** Kurzfassung für die Fragenzeile: beide Werte, keine Namen beim Messen. */
+function hideRowText(ha) {
+  if (ha.kind === 'radar') return 'Versteck ' + fmtDist(ha.mine) + ' · Radius ' + fmtDist(ha.theirs);
+  if (ha.kind === 'measure') return 'Versteck ' + fmtDist(ha.mine) + ' · Jäger ' + fmtDist(ha.theirs);
+  return 'Versteck: ' + ha.mineName + ' · Jäger: ' + ha.theirsName;
+}
+
+/** Die wahre Antwort im Dialog — beim Messen mit den Namen beider Orte. */
 function hideSheetText(q, ha) {
   const side = (label, km, name) =>
     label + ' ' + fmtDist(km) + (name ? ' · ' + esc(name) : '');
-  const line = q.type === 'radar'
-    ? side('Versteck', ha.mine) + ' — Radius ' + fmtDist(ha.theirs)
-    : side('Versteck', ha.mine, ha.mineName) + ' — ' + side('Jäger', ha.theirs, ha.theirsName);
+  let line;
+  if (ha.kind === 'radar') line = side('Versteck', ha.mine) + ' — Radius ' + fmtDist(ha.theirs);
+  else if (ha.kind === 'measure')
+    line = side('Versteck', ha.mine, ha.mineName) + ' — ' + side('Jäger', ha.theirs, ha.theirsName);
+  else line = 'Versteck: ' + esc(ha.mineName) + ' — Jäger: ' + esc(ha.theirsName);
+
+  /* Beim Matching ist die Marge der Abstand zu der Grenze, die die Antwort
+     kippen würde — beim Messen der Unterschied selbst. Zwei Sachen, zwei
+     Beschriftungen; „Unterschied 0 m" über einer Stadtteilgrenze wäre Unsinn. */
+  const m = ha.margin * 1000;
+  const nah = (ha.kind === 'match' ? 'Abstand zur Grenze: ' : 'Unterschied: ') +
+              (m < 1 ? 'unter 1 m' : Math.round(m) + ' m');
   return line + ' → <b>' + ANS_LABEL[ha.ans].toUpperCase() + '</b>' +
-         (ha.near ? '<br>Unterschied nur ' + Math.round(ha.margin * 1000) +
-                    ' m — das entscheidet ihr besser vor Ort.' : '');
+         (ha.near ? '<br>' + nah + ' — das entscheidet ihr besser vor Ort.' : '');
 }
 
 function showTentacleSheet(q) {
