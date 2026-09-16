@@ -431,6 +431,45 @@ function nearestAt(cat, pt) {
   return { k: bk, d: best, poi: pois[bk] };
 }
 
+/**
+ * Verwaltungsgrenzen aus der Bogenform ausrollen.
+ *
+ * In der Datei steht jede Grenzlinie **genau einmal** unter `divisions.arcs`;
+ * eine Fläche ist nur noch eine Liste von Ringen aus vorzeichenbehafteten
+ * Bogen-Indizes (negativ = rückwärts durchlaufen, ~i = -i-1 wie in TopoJSON).
+ *
+ * Das ist nicht bloß Platzersparnis: Solange jede Fläche ihren Rand selbst
+ * speicherte, gab es von jeder Innengrenze zwei bis drei Kopien — und die
+ * waren in der alten Datei bis zu 245 m auseinandergelaufen (Runde 19). Mit
+ * einer einzigen Quelle je Linie kann das konstruktiv nicht mehr passieren.
+ *
+ * Ausgerollt wird einmal beim Start, damit der Rest der App unverändert mit
+ * `feature.geometry` weiterarbeitet.
+ */
+function expandDivisions(data) {
+  const arcs = data.divisions && data.divisions.arcs;
+  if (!arcs) return;
+  const ring = (idxs) => {
+    const out = [];
+    for (const k of idxs) {
+      const a = k < 0 ? arcs[~k].slice().reverse() : arcs[k];
+      // Der Anschlusspunkt gehört schon zum vorigen Bogen — nicht doppelt.
+      for (let i = out.length ? 1 : 0; i < a.length; i++) out.push(a[i]);
+    }
+    return out;
+  };
+  for (const lvl of ['d2', 'd3']) {
+    const D = data.divisions[lvl];
+    if (!D || !D.features) continue;
+    for (const f of D.features) {
+      if (f.geometry || !f.rings) continue;
+      f.geometry = f.rings.length > 1
+        ? { type: 'MultiPolygon', coordinates: f.rings.map((r) => [ring(r)]) }
+        : { type: 'Polygon', coordinates: [ring(f.rings[0])] };
+    }
+  }
+}
+
 function divIndexAt(level, pt) {
   const feats = S.data.divisions[level].features;
   for (let k = 0; k < feats.length; k++) if (pointInGeom(pt[0], pt[1], feats[k].geometry)) return k;
@@ -3001,6 +3040,7 @@ function initTheme() {
    ============================================================ */
 function boot() {
   S.data = window.__KOELN__;
+  expandDivisions(S.data);
 
   // Spielgebiet: festes Rechteck aus den Daten (Bounding-Box der Stationen
   // + Puffer, siehe build-data.js). Fallback nur zur Sicherheit, falls

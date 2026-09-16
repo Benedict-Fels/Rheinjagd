@@ -141,16 +141,31 @@ function centroid(g) {
 }
 
 // ---------- Build ----------
-const city = raw.admin.find((f) => f.properties.level === 6);
-const bezirke = raw.admin.filter((f) => f.properties.level === 9);
-const stadtteile = raw.admin.filter((f) => f.properties.level === 10);
-
-// Rheinseite pro Stadtteil bestimmen
-for (const f of stadtteile) {
-  f.properties.side = sideOfLine(centroid(f.geometry), raw.rhein);
+/* Verwaltungsgrenzen kommen seit Runde 20 aus `data/koeln-boundaries-raw.json`
+   (frischer Overpass-Export in voller Auflösung) und werden in Bogenform
+   abgelegt: jede Grenzlinie steht genau einmal, beide Nachbarn verweisen
+   darauf. `raw.admin` aus koeln-raw.json wird dafür **nicht mehr gelesen** —
+   es ist die alte, pro Fläche kopierte und ausgedünnte Fassung, in der die
+   Kopien bis zu 245 m auseinandergelaufen waren. */
+const { build: buildBoundaries, expandRing } = require('./build-boundaries.js');
+const B = buildBoundaries(path.join(__dirname, 'data/koeln-boundaries-raw.json'));
+if (B.problems.length) {
+  console.error('Grenzdaten fehlerhaft:', B.problems.join(' | '));
+  process.exit(1);
 }
-for (const f of bezirke) {
-  f.properties.side = sideOfLine(centroid(f.geometry), raw.rhein);
+/** Fläche als GeoJSON — nur hier im Build gebraucht (Rheinseite, POI-Stadtteil). */
+const geomOf = (f) => ({ type: f.rings.length > 1 ? 'MultiPolygon' : 'Polygon',
+  coordinates: f.rings.length > 1
+    ? f.rings.map((r) => [expandRing(r, B.arcs)])
+    : [expandRing(f.rings[0], B.arcs)] });
+
+const city = { geometry: geomOf(B.city) };
+const bezirke = B.d2.map((f) => ({ ...f, geometry: geomOf(f) }));
+const stadtteile = B.d3.map((f) => ({ ...f, geometry: geomOf(f) }));
+
+// Rheinseite pro Fläche bestimmen
+for (const f of [...stadtteile, ...bezirke]) {
+  f.side = sideOfLine(centroid(f.geometry), raw.rhein);
 }
 
 // Ring-Daten bevorzugen, sonst die Stadtdaten
@@ -200,7 +215,7 @@ const pois = dedupe(curate(ring ? ring.pois : raw.pois))
 // Rheinseite je POI; Stadtteil nur für POIs innerhalb Kölns
 for (const p of pois) {
   const st = stadtteile.find((f) => pointInGeom([p.x, p.y], f.geometry));
-  p.st = st ? st.properties.name : null;
+  p.st = st ? st.name : null;
   p.side = sideOfLine([p.x, p.y], raw.rhein);
 }
 
@@ -246,10 +261,15 @@ const bundle = {
   stations,
   play_box: playBox,
   divisions: {
+    /* `arcs` sind die 464 Grenzlinien, jede genau einmal. Eine Fläche ist eine
+       Liste von Ringen, ein Ring eine Liste vorzeichenbehafteter Bogen-Indizes
+       (negativ = rückwärts, ~i = -i-1 wie in TopoJSON). Die App rollt das beim
+       Start einmal zu GeoJSON aus (`expandDivisions()` in app.js). */
+    arcs: B.arcs,
     // Nutzer-Entscheidung: Rheinseite wird als "1st Division" geführt
     d1: { label: 'Rheinseite', kind: 'side' },
-    d2: { label: 'Stadtbezirk', kind: 'poly', features: bezirke.map((f) => ({ name: f.properties.name, side: f.properties.side, geometry: f.geometry })) },
-    d3: { label: 'Stadtteil', kind: 'poly', features: stadtteile.map((f) => ({ name: f.properties.name, side: f.properties.side, geometry: f.geometry })) },
+    d2: { label: 'Stadtbezirk', kind: 'poly', features: bezirke.map((f) => ({ name: f.name, side: f.side, rings: f.rings })) },
+    d3: { label: 'Stadtteil', kind: 'poly', features: stadtteile.map((f) => ({ name: f.name, side: f.side, rings: f.rings })) },
   },
   pois,
 };
@@ -262,9 +282,10 @@ fs.writeFileSync(path.join(__dirname, 'data/koeln.json'),
   JSON.stringify(bundle, null, 4).replace(/\n/g, '\r\n'));
 
 const sides = { links: 0, rechts: 0 };
-stadtteile.forEach((f) => sides[f.properties.side]++);
+stadtteile.forEach((f) => sides[f.side]++);
 console.log('Stadtteile nach Rheinseite:', JSON.stringify(sides));
-console.log('Bezirke:', bezirke.map((f) => f.properties.name + '(' + f.properties.side + ')').join(', '));
+console.log('Bezirke:', bezirke.map((f) => f.name + '(' + f.side + ')').join(', '));
+console.log('Grenzbögen:', B.arcs.length, '· Punkte:', B.arcs.reduce((s2, a) => s2 + a.length, 0));
 console.log('POIs nach Kuration:', JSON.stringify(counts), '=', pois.length);
 console.log('Stationen:', stations.length,
   JSON.stringify(stations.reduce((a,s)=>{a[s.k]=(a[s.k]||0)+1;return a;},{})));
