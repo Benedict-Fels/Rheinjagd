@@ -290,7 +290,7 @@ button{cursor:pointer;background:none;border:none}
 /* ===== Verlauf ===== */
 .hist{display:grid;gap:6px}
 .hrow{
-  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:9px;
+  display:grid;grid-template-columns:auto 1fr auto auto auto;align-items:center;gap:9px;
   padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:12px;
 }
 .hnum{width:20px;height:20px;border-radius:5px;background:var(--surface-2);
@@ -303,9 +303,12 @@ button{cursor:pointer;background:none;border:none}
 .ha.yes{color:var(--keep)}.ha.no{color:var(--exclude)}
 .hkm{font-family:var(--f-disp);font-variant-numeric:tabular-nums;font-size:12px;
   color:var(--muted);white-space:nowrap}
-.del{width:26px;height:26px;display:grid;place-items:center;border-radius:6px;color:var(--muted);flex:none}
+.del,.edit{width:26px;height:26px;display:grid;place-items:center;border-radius:6px;
+  color:var(--muted);flex:none}
 .del:hover{background:var(--surface-2);color:var(--exclude)}
-.del svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.edit:hover{background:var(--surface-2);color:var(--accent)}
+.del svg,.edit svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
 
 .empty{text-align:center;padding:26px 14px;color:var(--muted);font-size:13px}
 .empty b{display:block;font-family:var(--f-disp);font-size:17px;color:var(--ink-2);

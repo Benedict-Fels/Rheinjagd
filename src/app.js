@@ -321,24 +321,48 @@ function stationPoiField(cat) {
   // der Voronoi-Kante zwischen "mein nächster Ort" und dem nächsten Konkurrenten
   // entfernt ist — genau die Grenze, um die es bei Matching-Fragen geht.
   const dist2 = new Float64Array(n).fill(Infinity);
+  // …und wer dieser Konkurrent ist: für den Abstand zur Voronoi-Kante wird
+  // auch der Abstand der beiden Orte zueinander gebraucht (Runde 21).
+  const idx2 = new Int16Array(n).fill(-1);
   if (pois.length) {
-    // Ebene Näherung für die Vorauswahl, exakte Distanz nur für die Treffer.
+    /* Ebene Näherung nur zur **Vorauswahl**, die Reihenfolge entscheidet
+       `distKm` (Runde 21). Vorher rangierte die ebene Näherung direkt, und bei
+       einem knappen Rennen zwischen zwei Orten kam dabei ein anderer Sieger
+       heraus als bei `nearestAt()` auf der Verstecker-Seite — gefunden an der
+       Margaretastraße, die zwischen Märchenwald Altenberg und Phantasialand
+       auf 13 mm genau in der Mitte liegt. Solange die Marge falsch gerechnet
+       wurde, fiel das nicht auf; mit der richtigen Marge schloss eine wahre
+       Antwort die eigene Station aus. Die Näherung weicht um weit unter einem
+       Prozent ab, deshalb reicht ein Sicherheitsaufschlag von 5 % auf den
+       zweitbesten Kandidaten, um alle in Frage kommenden Orte einzusammeln. */
     const kx = Math.cos(toRad(S.data.center[1])) * 111.32, ky = 110.57;
+    const cand = [];
     for (let i = 0; i < n; i++) {
       const s = S.stations[i];
-      let best = Infinity, bk = -1, second = Infinity, sk = -1;
+      let best = Infinity, second = Infinity;
       for (let k = 0; k < pois.length; k++) {
         const dx = (s.x - pois[k].x) * kx, dy = (s.y - pois[k].y) * ky;
         const d = dx * dx + dy * dy;
-        if (d < best) { second = best; sk = bk; best = d; bk = k; }
-        else if (d < second) { second = d; sk = k; }
+        if (d < best) { second = best; best = d; }
+        else if (d < second) second = d;
       }
-      idx[i] = bk;
-      dist[i] = distKm(s.x, s.y, pois[bk].x, pois[bk].y);
-      if (sk >= 0) dist2[i] = distKm(s.x, s.y, pois[sk].x, pois[sk].y);
+      const lim = (Math.sqrt(isFinite(second) ? second : best) * 1.05 + 0.02) ** 2;
+      cand.length = 0;
+      for (let k = 0; k < pois.length; k++) {
+        const dx = (s.x - pois[k].x) * kx, dy = (s.y - pois[k].y) * ky;
+        if (dx * dx + dy * dy <= lim) cand.push(k);
+      }
+      let b1 = Infinity, k1 = -1, b2 = Infinity, k2 = -1;
+      for (const k of cand) {
+        const d = distKm(s.x, s.y, pois[k].x, pois[k].y);
+        if (d < b1) { b2 = b1; k2 = k1; b1 = d; k1 = k; }
+        else if (d < b2) { b2 = d; k2 = k; }
+      }
+      idx[i] = k1; dist[i] = b1;
+      idx2[i] = k2; dist2[i] = b2;
     }
   }
-  S.sf.poi[key] = { idx, dist, dist2, pois };
+  S.sf.poi[key] = { idx, dist, dist2, idx2, pois };
   return S.sf.poi[key];
 }
 
@@ -518,12 +542,79 @@ function distToBorderKm(level, pt) {
  *
  * Die Abstände zur Grenze:
  *   Radar         |d(Seeker) − Radius|
- *   Thermometer   |d(Start) − d(Ziel)| / 2   (Mittelsenkrechte)
+ *   Thermometer   Abstand zur Mittelsenkrechten  (`bisectorDistKm`)
  *   Rheinseite    Abstand zur Rheinlinie
  *   Bezirk/Teil   Abstand zur nächsten Grenze derselben Ebene
- *   Matching-Ort  |d(mein Ort) − d(nächster Ort)| / 2   (Voronoi-Kante)
+ *   Matching-Ort  Abstand zur Voronoi-Kante      (`bisectorDistKm`)
  *   Measuring     |d(Station) − d(Seeker)|
  */
+/** Einheitsvektor auf der Kugel zu [lon, lat]. */
+function unitVec(lon, lat) {
+  const la = toRad(lat), lo = toRad(lon), c = Math.cos(la);
+  return [c * Math.cos(lo), c * Math.sin(lo), Math.sin(la)];
+}
+
+/**
+ * Abstand eines Punktes zur Mittelsenkrechten von A und B — also zu der Linie,
+ * auf der d(P,A) = d(P,B) gilt. Das ist die Grenze einer Thermometer-Frage und
+ * zugleich die Voronoi-Kante zwischen zwei Orten.
+ *
+ * Exakt auf derselben Kugel wie `distKm`: d(P,A) = d(P,B) heißt P·Â = P·B̂,
+ * also liegt die Grenze auf dem Großkreis mit der Normalen n̂ = (Â − B̂)/|Â − B̂|,
+ * und der Abstand ist R · |asin(P̂ · n̂)|.
+ *
+ * **Runde 21 — das war Benes Bugreport.** Vorher stand an allen drei
+ * Fundstellen nur `|da − db| / 2`. Das ist der Sonderfall, dass P *auf der
+ * Strecke AB* liegt; sonst fehlt der Faktor (da + db)/ab, und der ist beliebig
+ * groß: bei 800 m Fahrt (½ Meile) und einer Station 10 km abseits ist er 25.
+ * Der gemeldete Abstand war dadurch um denselben Faktor **zu klein** —
+ * Stationen bis über 100 m jenseits der Linie rutschten unter die
+ * 5-m-Toleranz, überlebten die Antwort und wurden obendrein als „knapp"
+ * gemeldet, obwohl die Linie sie nicht im Entferntesten streift.
+ */
+function bisectorDistKm(px, py, ax, ay, bx, by) {
+  const a = unitVec(ax, ay), b = unitVec(bx, by);
+  const nx = a[0] - b[0], ny = a[1] - b[1], nz = a[2] - b[2];
+  const L = Math.hypot(nx, ny, nz);
+  if (L < 1e-12) return Infinity;         // A = B: es gibt keine Grenze
+  const p = unitVec(px, py);
+  return R_EARTH * Math.abs(Math.asin((p[0] * nx + p[1] * ny + p[2] * nz) / L));
+}
+
+/**
+ * Die Mittelsenkrechte als zeichenbarer Linienzug ([lat, lon]-Paare), `halfKm`
+ * weit nach beiden Seiten.
+ *
+ * Gerechnet auf der Kugel, nicht im Gradnetz (Runde 21). Die alte Fassung
+ * drehte den Richtungsvektor in *Graden* und setzte den cos-Faktor obendrein
+ * auf die falsche Achse — bei einer Fahrt nach Nordosten stand die gezeichnete
+ * Linie dadurch rund 31° schief, also quer durch Stationen, die sie gar nicht
+ * trennt. Das war die zweite Hälfte von Benes Bugreport: die Linie auf der
+ * Karte und die Rechnung dahinter zogen verschiedene Grenzen.
+ *
+ * Auf der Kugel: m̂ = normiert(Â + B̂) liegt auf der Grenze, n̂ = normiert(Â − B̂)
+ * ist ihr Pol, t̂ = n̂ × m̂ zeigt entlang der Grenze. Abgetastet wird
+ * m̂·cos θ + t̂·sin θ.
+ */
+function bisectorPath(A, B, halfKm, steps) {
+  const a = unitVec(A[0], A[1]), b = unitVec(B[0], B[1]);
+  const norm = (v) => { const L = Math.hypot(v[0], v[1], v[2]); return L < 1e-12 ? null : [v[0] / L, v[1] / L, v[2] / L]; };
+  const n = norm([a[0] - b[0], a[1] - b[1], a[2] - b[2]]);
+  const m = norm([a[0] + b[0], a[1] + b[1], a[2] + b[2]]);
+  if (!n || !m) return null;
+  const t = norm([n[1] * m[2] - n[2] * m[1], n[2] * m[0] - n[0] * m[2], n[0] * m[1] - n[1] * m[0]]);
+  if (!t) return null;
+  const half = halfKm / R_EARTH, k = steps || 24;
+  const out = [];
+  for (let i = 0; i <= k; i++) {
+    const th = -half + (2 * half * i) / k;
+    const c = Math.cos(th), s = Math.sin(th);
+    const p = [m[0] * c + t[0] * s, m[1] * c + t[1] * s, m[2] * c + t[2] * s];
+    out.push([Math.asin(p[2]) * 180 / Math.PI, Math.atan2(p[1], p[0]) * 180 / Math.PI]);
+  }
+  return out;
+}
+
 function stationDecider(q, ans) {
   const pos = ans === 'yes' || ans === 'closer' || ans === 'hotter';
   const F = S.sf, ST = S.stations;
@@ -543,8 +634,11 @@ function stationDecider(q, ans) {
            (Stand hier früher in beiden Fällen die Kante zum Seeker-Ort, war sie
            bei einem Treffer null: jede Station galt als knapp und eine
            Matching-Antwort schloss überhaupt nichts aus.) */
-        const other = hit ? f.dist2[i] : distKm(ST[i].x, ST[i].y, target.x, target.y);
-        return { hit, margin: Math.abs(other - f.dist[i]) / 2 };
+        const rival = hit ? f.pois[f.idx2[i]] : target;
+        const mine = f.pois[f.idx[i]];
+        if (!rival || !mine) return { hit, margin: Infinity };   // nur ein Ort: keine Kante
+        return { hit, margin: bisectorDistKm(ST[i].x, ST[i].y,
+                                             mine.x, mine.y, rival.x, rival.y) };
       } };
     }
     case 'match-div': {
@@ -582,7 +676,7 @@ function stationDecider(q, ans) {
       return { pos, at: (i) => {
         const s = ST[i];
         const da = distKm(s.x, s.y, ax, ay), db = distKm(s.x, s.y, bx, by);
-        return { hit: db < da, margin: Math.abs(da - db) / 2 };
+        return { hit: db < da, margin: bisectorDistKm(s.x, s.y, ax, ay, bx, by) };
       } };
     }
     case 'tentacle': {
@@ -603,10 +697,12 @@ function stationDecider(q, ans) {
         if (inR && nearestOk) return { hit: true, margin: 0 };
         /* Verletzte Bedingungen: die Station müsste über die nähere der beiden
            Grenzen wandern, um doch zu passen — also die kleinere Marge zählt. */
-        const dT = distKm(s.x, s.y, target.x, target.y);
         let margin = Infinity;
         if (!inR) margin = Math.min(margin, Math.abs(d - r));
-        if (!nearestOk && f.idx[i] >= 0) margin = Math.min(margin, Math.abs(dT - f.dist[i]) / 2);
+        if (!nearestOk && f.idx[i] >= 0) {
+          const mine = f.pois[f.idx[i]];
+          margin = Math.min(margin, bisectorDistKm(s.x, s.y, mine.x, mine.y, target.x, target.y));
+        }
         return { hit: false, margin };
       } };
     }
@@ -780,8 +876,10 @@ function hideAnswer(q) {
          die Kante zum Ort der Jäger. Genau wie in stationDecider() — stünde
          hier in beiden Fällen dasselbe, wäre die Marge bei einem Treffer
          null und jede Matching-Antwort wäre „knapp". */
-      const other = hit ? a.d2 : distKm(h[0], h[1], b.poi.x, b.poi.y);
-      const margin = isFinite(other) ? Math.abs(other - a.d) / 2 : Infinity;
+      const rival = hit ? a.poi2 : b.poi;
+      const margin = rival
+        ? bisectorDistKm(h[0], h[1], a.poi.x, a.poi.y, rival.x, rival.y)
+        : Infinity;
       return same(hit, a.poi.n, b.poi.n, margin, HIDE_NEAR_MEASURE_KM);
     }
     case 'match-div': {
@@ -935,7 +1033,7 @@ function buildCatalog() {
       name: fmtMi(mi) + ' fahren',
       sub: 'Startpunkt = aktuelle Position',
       ask: 'Nach <em>' + fmtMi(mi) + '</em> Fahrt: wärmer oder kälter?',
-      ctx: () => 'Endpunkt auf der Karte setzen',
+      ctx: () => 'Endpunkt als Koordinate eingeben',
     })),
   });
 
@@ -1231,17 +1329,8 @@ function drawEdges() {
         ...style, radius: q.mi * MILE_KM * 1000, dashArray: '5 4', weight: 1.5,
       }).addTo(S.layers.edges);
     } else if (q.type === 'thermo') {
-      // Mittelsenkrechte zwischen Start- und Endpunkt
-      const [ax, ay] = q.from, [bx, by] = q.to;
-      const mx = (ax + bx) / 2, my = (ay + by) / 2;
-      const dx = bx - ax, dy = by - ay;
-      const len = Math.hypot(dx, dy) || 1e-9;
-      // Senkrechte, verlängert über das Spielgebiet hinaus
-      const ext = (boxDiagKm() * 1.1) / 111.32;
-      const px = (-dy / len) * ext, py = (dx / len) * ext / Math.cos(toRad(my));
-      L.polyline([[my - py, mx - px], [my + py, mx + px]], {
-        ...style, dashArray: '6 4',
-      }).addTo(S.layers.edges);
+      const pts = bisectorPath(q.from, q.to, boxDiagKm() * 1.1);
+      if (pts) L.polyline(pts, { ...style, dashArray: '6 4' }).addTo(S.layers.edges);
     }
   }
 }
@@ -1514,11 +1603,16 @@ function onMapClick(e) {
   f(pt);
 }
 
-/** Laufende Punktauswahl abbrechen (Escape oder erneuter Knopfdruck). */
+/** Laufende Punktauswahl abbrechen (Escape oder erneuter Knopfdruck).
+    Das Versprechen wird mit `null` eingelöst, damit der Aufrufer aufräumen
+    kann (Runde 21) — vorher hing es für immer, und `S.thermoFrom` blieb nach
+    einem Abbruch als Geistermarker auf der Karte stehen. */
 function cancelPicking() {
   if (!S.picking) return false;
+  const res = S.picking;
   S.picking = null; hint(null);
   restorePanelAfterPick();
+  res(null);
   return true;
 }
 
@@ -1526,7 +1620,7 @@ function cancelPicking() {
 async function pickSeeker() {
   if (cancelPicking()) return;
   const pt = await pickPoint('Position auf der Karte antippen — Esc bricht ab');
-  setSeeker(pt, false);
+  if (pt) setSeeker(pt, false);
 }
 
 /** Seeker-Position setzen; `center` zentriert die Karte darauf. */
@@ -1548,7 +1642,7 @@ function setHide(pt, center) {
 async function pickHide() {
   if (cancelPicking()) return;
   const pt = await pickPoint('Versteck auf der Karte antippen — Esc bricht ab');
-  setHide(pt, false);
+  if (pt) setHide(pt, false);
 }
 
 /** Ortung als Versteck übernehmen. Bei laufendem Live-Standort ohne Umweg. */
@@ -1629,12 +1723,43 @@ function askCoords(opts) {
     '<input class="sel" id="coordIn" inputmode="decimal" autocomplete="off" ' +
     'placeholder="50.94196, 6.95827" value="' + cur[1].toFixed(5) + ', ' + cur[0].toFixed(5) + '">' +
     '<div class="note" id="coordMsg"></div>' +
+    /* Die Ortung schreibt ihre Koordinaten **ins Feld**, statt sie sofort zu
+       übernehmen (Bene, Runde 21): so stehen sie sichtbar da, lassen sich
+       kopieren und an die andere Gruppe schicken — und man kann sie vor dem
+       Setzen noch korrigieren. */
+    (o.geo || o.map
+      ? '<div class="setgrid' + (o.geo && o.map ? '' : ' one') + '">' +
+        (o.geo ? '<button class="btn flat" id="coordGeo">Mein Standort</button>' : '') +
+        (o.map ? '<button class="btn flat" id="coordMap">Auf Karte tippen</button>' : '') +
+        '</div>'
+      : '') +
     '<div class="answers">' +
-    '<button class="ans yes" id="coordOk">Position setzen</button>' +
+    '<button class="ans yes" id="coordOk">' + (o.okLabel || 'Position setzen') + '</button>' +
     '</div><button class="ghost" data-a="">Abbrechen</button>';
 
   const input = card.querySelector('#coordIn');
   const msg = card.querySelector('#coordMsg');
+  const fill = (p) => { input.value = p[1].toFixed(5) + ', ' + p[0].toFixed(5); input.select(); };
+  const geoBtn = card.querySelector('#coordGeo');
+  if (geoBtn) geoBtn.onclick = () => {
+    if (S.geoPos) { fill(S.geoPos); msg.textContent = 'Ortung übernommen — ' +
+      (S.geoAcc ? 'auf ' + Math.round(S.geoAcc) + ' m genau. ' : '') + 'Mit „Setzen" bestätigen.'; return; }
+    if (!navigator.geolocation) { msg.textContent = 'Standort nicht verfügbar.'; return; }
+    msg.textContent = 'Standort wird gesucht …';
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { fill([pos.coords.longitude, pos.coords.latitude]);
+        msg.textContent = 'Ortung übernommen — auf ' + Math.round(pos.coords.accuracy) +
+          ' m genau. Mit „Setzen" bestätigen.'; },
+      () => { msg.textContent = 'Standort nicht verfügbar — Koordinaten von Hand eintragen.'; },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+  const mapBtn = card.querySelector('#coordMap');
+  if (mapBtn) mapBtn.onclick = async () => {
+    closeSheet();
+    const p = await pickPoint(o.title || 'Punkt auf der Karte antippen — Esc bricht ab');
+    if (p) set(p); else if (o.onCancel) o.onCancel();
+  };
   const apply = () => {
     const r = parseLocationInfo(input.value);
     if (r && r.error === 'shortlink') {
@@ -1656,7 +1781,9 @@ function askCoords(opts) {
   };
   card.querySelector('#coordOk').onclick = apply;
   input.onkeydown = (e) => { if (e.key === 'Enter') apply(); };
-  card.querySelectorAll('[data-a]').forEach((b) => { b.onclick = closeSheet; });
+  card.querySelectorAll('[data-a]').forEach((b) => {
+    b.onclick = () => { closeSheet(); if (o.onCancel) o.onCancel(); };
+  });
   document.getElementById('sheet').hidden = false;
   setTimeout(() => { input.focus(); input.select(); }, 40);
 }
@@ -1919,16 +2046,33 @@ function toggleCollapsed(key) {
   save();
 }
 
+/* ---------- Thermometer: Endpunkt ----------
+   Der Endpunkt kommt über **Koordinaten** herein (Bene, Runde 21): ein
+   Kartentipp ist auf dem Handy ein paar Dutzend Meter ungenau, und bei einer
+   ½-Meile-Fahrt entscheidet genau das über die Lage der Mittelsenkrechten.
+   „Mein Standort" schreibt die Ortung ins Feld, statt sie still zu übernehmen
+   — so steht die Koordinate sichtbar da und lässt sich an die andere Gruppe
+   schicken. Der Kartentipp bleibt als dritter Weg. */
+function askThermoEnd(q, from, done, onCancel) {
+  const a = from || S.seeker;
+  S.thermoFrom = a; renderMarks();
+  const finish = (to) => {
+    S.thermoFrom = null; renderMarks();
+    if (to) done(to); else if (onCancel) onCancel();
+  };
+  askCoords({
+    title: 'Endpunkt nach ' + fmtMi(q.mi) + ' Fahrt',
+    cur: q.to || a, geo: true, map: true, okLabel: 'Endpunkt setzen',
+    set: finish, onCancel: () => finish(null),
+  });
+}
+
 /* ---------- Antwort-Dialog ---------- */
 async function openSheet(q) {
   if (q.type === 'thermo') {
     const from = S.seeker;
-    S.thermoFrom = from;
-    renderMarks();
-    const to = await pickPoint('Endpunkt antippen — nach ' + fmtMi(q.mi) + ' Fahrt');
-    S.thermoFrom = null;
-    const realKm = distKm(from[0], from[1], to[0], to[1]);
-    showSheet({ ...q, from, to, realKm }, null);
+    askThermoEnd(q, from, (to) => showSheet(
+      { ...q, from, to, realKm: distKm(from[0], from[1], to[0], to[1]) }, null));
     return;
   }
   if (q.type === 'tentacle') {
@@ -2134,6 +2278,104 @@ function showBorderlineSheet(hi) {
   document.getElementById('sheet').hidden = false;
 }
 
+/**
+ * Eine beantwortete Frage nachträglich korrigieren (Runde 21).
+ *
+ * Bis hierher war der einzige Weg: löschen und neu stellen — und beim
+ * Thermometer hieß das, den Endpunkt noch einmal zu setzen. Im Spiel steht
+ * aber genau das Gegenteil an: die Frage stimmt, nur der eingetippte Endpunkt
+ * war ein Zahlendreher, oder die Jäger hatten ihre Position noch nicht genau
+ * durchgegeben.
+ *
+ * Geändert werden Positionen und Antwort **an der eingefrorenen Kopie im
+ * Verlauf** (`h.q`) — sie ist der Bezugspunkt der Auswertung, `S.seeker` bleibt
+ * unberührt. Danach rechnet `recompute()` den ganzen Verlauf neu, inklusive
+ * der Grenzfälle jeder folgenden Frage.
+ */
+function showEditSheet(i) {
+  const h = S.history[i];
+  if (!h) { closeSheet(); return; }
+  const q = h.q;
+  const card = document.getElementById('sheetCard');
+  const pts = q.type === 'thermo'
+    ? [{ k: 'from', label: 'Start' }, { k: 'to', label: 'Endpunkt' }]
+    : [{ k: 'seeker', label: 'Jäger-Position' }];
+  const answers = ANSWER_SETS[q.type];
+  const fmtPt = (c) => c[1].toFixed(5) + ', ' + c[0].toFixed(5);
+
+  card.innerHTML =
+    '<div class="qtitle" id="sheetTitle">' + esc(h.label) + '</div>' +
+    '<div class="qmeta">' +
+    (q.type === 'thermo' && q.realKm != null
+      ? 'Tatsächlich gefahren: ' + q.realKm.toFixed(2) + ' km'
+      : esc(placeName(q.seeker))) + '</div>' +
+    '<div class="poilist">' +
+    pts.filter((p) => q[p.k]).map((p) =>
+      '<div class="poiitem"><b>' + p.label +
+      ' <small>' + fmtPt(q[p.k]) + '</small></b>' +
+      '<div class="poiacts">' +
+      '<button class="minibtn" data-copy="' + p.k + '">Kopieren</button>' +
+      '<button class="minibtn" data-pt="' + p.k + '">Ändern</button>' +
+      '</div></div>').join('') +
+    '</div>' +
+    (answers
+      ? '<div class="answers">' + answers.map((a) =>
+          '<button class="ans ' +
+          ((a === 'no' || a === 'further' || a === 'colder') ? 'no' : 'yes') +
+          (a === h.ans ? ' true' : '') + '" data-ans="' + a + '">' +
+          ANS_LABEL[a] + '</button>').join('') + '</div>'
+      : '<div class="note">Antwort: ' + esc(h.answerText) + ' — bei Tentacles ' +
+        'nicht umschaltbar. Dafür die Frage löschen und neu stellen.</div>') +
+    '<button class="ghost" data-a="">Fertig</button>';
+
+  /* Position ändern: dieselbe Koordinateneingabe wie beim Stellen der Frage,
+     mit Ortung und Kartentipp als Alternativen. Danach wird neu gerechnet und
+     der Dialog bleibt offen — man korrigiert selten nur eine Sache. */
+  const setPt = (k, p) => {
+    q[k] = p;
+    if (q.type === 'thermo') {
+      if (k === 'from') q.seeker = [p[0], p[1]];
+      if (q.from && q.to) q.realKm = distKm(q.from[0], q.from[1], q.to[0], q.to[1]);
+    }
+    recompute();
+    showEditSheet(i);
+  };
+  card.querySelectorAll('[data-pt]').forEach((b) => {
+    b.onclick = () => {
+      const k = b.dataset.pt;
+      const label = pts.find((p) => p.k === k).label;
+      if (q.type === 'thermo' && k === 'to') {
+        askThermoEnd(q, q.from, (p) => setPt('to', p), () => showEditSheet(i));
+        return;
+      }
+      askCoords({
+        title: label + ' ändern', cur: q[k], geo: true, map: true,
+        okLabel: 'Übernehmen', set: (p) => setPt(k, p),
+        onCancel: () => showEditSheet(i),
+      });
+    };
+  });
+  card.querySelectorAll('[data-copy]').forEach((b) => {
+    b.onclick = async () => {
+      const txt = fmtPt(q[b.dataset.copy]);
+      try { await navigator.clipboard.writeText(txt); b.textContent = 'kopiert'; }
+      catch { b.textContent = txt; }
+      setTimeout(() => { b.textContent = 'Kopieren'; }, 1800);
+    };
+  });
+  card.querySelectorAll('[data-ans]').forEach((b) => {
+    b.onclick = () => {
+      const a = b.dataset.ans;
+      if (a === h.ans) return;
+      h.ans = a; h.answerText = ANS_LABEL[a] || a;
+      recompute();
+      showEditSheet(i);
+    };
+  });
+  card.querySelectorAll('[data-a]').forEach((b) => { b.onclick = closeSheet; });
+  document.getElementById('sheet').hidden = false;
+}
+
 /* ---------- Verlauf ---------- */
 function renderHist() {
   const box = document.getElementById('tabHist');
@@ -2156,6 +2398,9 @@ function renderHist() {
         ? '<button class="minibtn" data-grenz="' + i + '" title="Grenzfälle ansehen">' +
           h.grenz.length + ' knapp</button>'
         : '') + '</div>' +
+      '<button class="edit" data-e="' + i + '" aria-label="Frage bearbeiten" ' +
+      'title="Positionen und Antwort ändern">' +
+      '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3z"/></svg></button>' +
       '<button class="del" data-i="' + i + '" aria-label="Frage entfernen">' +
       '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>';
   });
@@ -2163,6 +2408,7 @@ function renderHist() {
   box.innerHTML = html;
 
   box.querySelectorAll('.del').forEach((b) => { b.onclick = () => undoAt(+b.dataset.i); });
+  box.querySelectorAll('.edit').forEach((b) => { b.onclick = () => showEditSheet(+b.dataset.e); });
   box.querySelectorAll('[data-grenz]').forEach((b) => {
     b.onclick = () => showBorderlineSheet(+b.dataset.grenz);
   });
