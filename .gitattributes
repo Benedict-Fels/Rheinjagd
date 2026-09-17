@@ -1,0 +1,12 @@
+# Diese Dateien liegen mit CRLF auf der Platte: build-data.js schreibt sie so,
+# damit die Diffs zeilenweise lesbar bleiben. Ohne diese Angabe vergleicht git
+# die CRLF-Fassung mit dem LF-Blob im Repo und meldet sie dauerhaft als
+# komplett geändert, obwohl sich kein einziges Zeichen unterscheidet.
+data/koeln.json              text eol=crlf
+data/koeln-raw.json          text eol=crlf
+data/koeln-ring25-pois.json  text eol=crlf
+data/koeln-stations.json     text eol=crlf
+README.md                    text eol=crlf
+
+# koeln-boundaries-raw.json liegt bewusst mit LF da (Overpass-Export, wird nur
+# gelesen) — hier nicht anfassen, sonst gibt es einen Scheinänderungs-Commit.

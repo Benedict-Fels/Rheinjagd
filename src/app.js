@@ -115,16 +115,6 @@ const S = {
    ============================================================ */
 const R_EARTH = 6371.0088;
 const toRad = (d) => (d * Math.PI) / 180;
-// Exakter km-pro-Breitengrad-Wert (aus demselben R_EARTH wie distKm/Haversine
-// oben) — nur für die Fein-Kanten-Verfeinerung unten, wo es auf wenige Meter
-// ankommt. Der Rest der Datei nutzt an einigen Stellen 110.57 als
-// Näherungskonstante fürs Raster selbst (Zellgröße etc.); das bewusst nicht
-// anfassen, um die bestehende Rasterausrichtung nicht zu verschieben — hier
-// geht es nur um die *Abweichung einer exakten Prüfung vom Raster*, und die
-// muss mit derselben Erdradius-Basis wie distKm rechnen, sonst hat die
-// „exakte" Kante selbst wieder einen systematischen Fehler (~13 m bei einem
-// 2,4-km-Radar-Kreis, gemessen mit 110.57 statt hier).
-const KM_PER_DEG_LAT = (R_EARTH * Math.PI) / 180;
 
 function distKm(ax, ay, bx, by) {
   const dLat = toRad(by - ay), dLon = toRad(bx - ax);
@@ -1703,6 +1693,111 @@ function placeName(pt) {
     : 'Außerhalb des Spielgebiets';
 }
 
+/** Kasten, der sich wie ein Knopf verhält: Tipp, Enter und Leertaste. */
+function tapOpen(el, fn) {
+  if (!el) return;
+  el.onclick = fn;
+  el.onkeydown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); }
+  };
+}
+
+/**
+ * Details zu einer gesetzten Position (Bene, Runde 23). Geöffnet über den
+ * linken Teil der Standortleiste: Koordinaten zum Kopieren und Verschicken
+ * und eine frische GPS-Messung. Mehr steht bewusst nicht drin (Bene,
+ * Runde 23): Stadtteil und Bezirk stehen schon als Untertitel, alles
+ * Weitere braucht dort niemand.
+ *
+ * Die Messung wird nur angezeigt, nicht übernommen — dafür gibt es einen
+ * eigenen Knopf. Die Regel aus Runde 15 gilt weiter: die Ortung verschiebt den
+ * Bezugspunkt der Fragen nie von selbst. `maximumAge: 0` erzwingt dabei eine
+ * neue Messung, statt den gespeicherten Wert des Live-Standorts zu wiederholen
+ * — genau dafür ist der Knopf da.
+ *
+ * `which` ist 'seeker' oder 'hide'.
+ */
+function showPosSheet(which) {
+  const isHide = which === 'hide';
+  const cur = () => (isHide ? S.hide : S.seeker);
+  if (!cur()) { closeSheet(); return; }
+  const card = document.getElementById('sheetCard');
+  const fmtPt = (c) => c[1].toFixed(5) + ', ' + c[0].toFixed(5);
+  let fresh = null;   // gemessen, noch nicht übernommen
+
+  const render = () => {
+    const pt = cur();
+
+    card.innerHTML =
+      '<div class="qtitle" id="sheetTitle">' +
+      (isHide ? 'Dein Versteck' : 'Deine Position') + '</div>' +
+      '<div class="qmeta">' + esc(placeName(pt)) + '</div>' +
+      '<input class="sel" id="posCoord" readonly value="' + fmtPt(pt) + '">' +
+      '<div class="answers">' +
+      '<button class="ans yes" id="posCopy">Koordinaten kopieren</button>' +
+      '</div>' +
+      /* Als Verstecker steht man im Versteck — diese Zahlen sind genau die,
+         die niemand bekommen soll. Gemeldet, nicht verboten (Runde 18). */
+      (isHide ? '<div class="note warn">Das ist dein Versteck — nicht verschicken.</div>' : '') +
+      '<div class="note" id="posMsg"></div>' +
+      '<div class="setgrid one">' +
+      '<button class="btn flat" id="posGeo">Standort aktualisieren</button></div>' +
+      (fresh
+        ? '<div class="poilist"><div class="poiitem">' +
+          '<b>Neue Ortung <small>' + fmtPt(fresh.pt) + '</small></b>' +
+          '<div class="poiacts">' +
+          '<button class="minibtn" id="freshCopy">Kopieren</button>' +
+          '<button class="minibtn" id="freshSet">Übernehmen</button>' +
+          '</div></div></div>' +
+          '<div class="note">' +
+          (fresh.acc ? 'auf ' + Math.round(fresh.acc) + ' m genau · ' : '') +
+          fmtDist(distKm(fresh.pt[0], fresh.pt[1], pt[0], pt[1])) +
+          ' von der eingetragenen ' + (isHide ? 'Versteck-' : '') + 'Position</div>'
+        : '') +
+      '<button class="ghost" data-a="">Schließen</button>';
+
+    const msg = card.querySelector('#posMsg');
+    const copy = async (btn, txt, label) => {
+      try { await navigator.clipboard.writeText(txt); btn.textContent = 'kopiert'; }
+      catch (e) {
+        const inp = card.querySelector('#posCoord');
+        inp.value = txt; inp.focus(); inp.select();
+        msg.textContent = 'Markiert — mit Strg/⌘+C kopieren.';
+      }
+      setTimeout(() => { btn.textContent = label; }, 1800);
+    };
+    card.querySelector('#posCopy').onclick = (e) =>
+      copy(e.currentTarget, fmtPt(cur()), 'Koordinaten kopieren');
+
+    card.querySelector('#posGeo').onclick = () => {
+      if (!navigator.geolocation) { msg.textContent = 'Standort nicht verfügbar.'; return; }
+      msg.textContent = 'Standort wird gesucht …';
+      navigator.geolocation.getCurrentPosition(
+        (p) => {
+          fresh = { pt: [p.coords.longitude, p.coords.latitude], acc: p.coords.accuracy };
+          render();
+        },
+        () => { msg.textContent = 'Standort nicht verfügbar — Koordinaten von Hand eintragen.'; },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+      );
+    };
+
+    const fc = card.querySelector('#freshCopy');
+    if (fc) fc.onclick = (e) => copy(e.currentTarget, fmtPt(fresh.pt), 'Kopieren');
+    const fs = card.querySelector('#freshSet');
+    if (fs) fs.onclick = () => {
+      const p = [fresh.pt[0], fresh.pt[1]];
+      fresh = null;
+      if (isHide) setHide(p, true); else setSeeker(p, true);
+      render();
+    };
+    card.querySelectorAll('[data-a]').forEach((b) => { b.onclick = closeSheet; });
+  };
+
+  render();
+  document.getElementById('sheet').hidden = false;
+}
+
 /**
  * Dialog zur Eingabe von Koordinaten.
  * `opts.title` / `opts.cur` / `opts.set` steuern Überschrift, Vorbelegung und
@@ -1927,9 +2022,12 @@ function renderAsk() {
   bar.className = 'posbar';
   const where = placeName(S.seeker);
   bar.innerHTML =
-    '<div class="poswho"><span class="posdot"></span>' +
+    '<div class="poswho tap" id="pInfo" role="button" tabindex="0" ' +
+    'title="Details zum Standort">' +
+    '<span class="posdot"></span>' +
     '<div><div class="posname">' + esc(where) + '</div>' +
-    '<div class="poscoord">' + S.seeker[1].toFixed(5) + ', ' + S.seeker[0].toFixed(5) + '</div></div></div>' +
+    '<div class="poscoord">' + S.seeker[1].toFixed(5) + ', ' + S.seeker[0].toFixed(5) + '</div></div>' +
+    '<span class="posmore" aria-hidden="true">›</span></div>' +
     '<div class="posacts">' +
     '<button class="minibtn" id="pGeo" title="Mein Standort">GPS</button>' +
     '<button class="minibtn" id="pMap" title="Position auf der Karte antippen">Karte</button>' +
@@ -1941,6 +2039,7 @@ function renderAsk() {
   bar.querySelector('#pMap').onclick = pickSeeker;
   bar.querySelector('#pHome').onclick = () => setSeeker([S.home.x, S.home.y], true);
   bar.querySelector('#pCoord').onclick = () => askCoords();
+  tapOpen(bar.querySelector('#pInfo'), () => showPosSheet('seeker'));
 
   /* Versteck-Leiste: zweite Position in eigener Farbe, damit die beiden nie
      verwechselt werden. Solange keine gesetzt ist, steht hier nur ein Knopf. */
@@ -1955,10 +2054,13 @@ function renderAsk() {
     const hb = document.createElement('div');
     hb.className = 'posbar forhide';
     hb.innerHTML =
-      '<div class="poswho"><span class="posdot"></span>' +
+      '<div class="poswho tap" id="hInfo" role="button" tabindex="0" ' +
+      'title="Details zum Versteck">' +
+      '<span class="posdot"></span>' +
       '<div><div class="posname">Versteck · ' + esc(placeName(S.hide)) + '</div>' +
       '<div class="poscoord' + (st.ok ? '' : st.illegal ? ' warn' : ' bad') + '">' +
-      hideStatusText(st) + '</div></div></div>' +
+      hideStatusText(st) + '</div></div>' +
+      '<span class="posmore" aria-hidden="true">›</span></div>' +
       '<div class="posacts">' +
       '<button class="minibtn" id="hGeo" title="Versteck = mein Standort">GPS</button>' +
       '<button class="minibtn" id="hMap" title="Versteck auf der Karte antippen">Karte</button>' +
@@ -1968,6 +2070,7 @@ function renderAsk() {
     box.appendChild(hb);
     hb.querySelector('#hGeo').onclick = hideFromGeo;
     hb.querySelector('#hMap').onclick = pickHide;
+    tapOpen(hb.querySelector('#hInfo'), () => showPosSheet('hide'));
     hb.querySelector('#hCoord').onclick = askHideCoords;
     hb.querySelector('#hOff').onclick = () => { S.hide = null; renderMarks(); renderAsk(); save(); };
   }

@@ -379,12 +379,21 @@ button{cursor:pointer;background:none;border:none}
   text-transform:uppercase;color:var(--ink-2);
 }
 .minibtn:hover{border-color:var(--accent);color:var(--accent)}
+/* Der linke Teil der Leiste ist selbst ein Knopf: er öffnet die Details zur
+   Position (Koordinaten kopieren, Ortung auffrischen). */
+.poswho.tap{cursor:pointer;border-radius:7px;padding:2px 4px;margin:-2px -4px}
+.poswho.tap:hover .posname{color:var(--accent)}
+.poswho.tap:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.posmore{font-family:var(--f-disp);font-size:15px;color:var(--muted);flex:none;
+  line-height:1;margin-left:auto;padding-left:6px}
 
 /* ===== Verstecker-Seite ===== */
 .posbar.forhide{border-color:color-mix(in srgb,var(--hide-ui) 45%,var(--line))}
 .posbar.forhide .posdot{background:var(--hide-ui);
   box-shadow:0 0 0 3px color-mix(in srgb,var(--hide-ui) 22%,transparent)}
 .posbar.forhide .minibtn:hover{border-color:var(--hide-ui);color:var(--hide-ui)}
+.posbar.forhide .poswho.tap:hover .posname{color:var(--hide-ui)}
+.posbar.forhide .poswho.tap:focus-visible{outline-color:var(--hide-ui)}
 .poscoord.bad{color:var(--exclude)}
 .poscoord.warn{color:var(--warn)}
 .verdict{font-family:var(--f-disp);font-size:14px;font-weight:700;letter-spacing:.04em;
