@@ -6,6 +6,8 @@
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,
 .leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}
 .leaflet-container{overflow:hidden;font-family:inherit;background:var(--map-bg);-webkit-tap-highlight-color:transparent}
+/* Gesten gehören der Karte, nie dem Browser-Zoom (fehlte im eingebetteten CSS) */
+.leaflet-container{touch-action:none}
 .leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow{-webkit-user-select:none;user-select:none;-webkit-user-drag:none}
 .leaflet-tile::selection{background:transparent}
 .leaflet-safari .leaflet-tile{image-rendering:-webkit-optimize-contrast}
@@ -105,6 +107,7 @@ body{
   margin:0;background:var(--paper);color:var(--ink);
   font-family:var(--f-ui);font-size:14px;line-height:1.45;
   height:100dvh;overflow:hidden;
+  touch-action:pan-x pan-y; /* kein Seiten-Zoom: Scrollen ja, Pinch nein */
   -webkit-font-smoothing:antialiased;
 }
 button,input,select{font:inherit;color:inherit}

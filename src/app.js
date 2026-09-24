@@ -3388,6 +3388,11 @@ function initTheme() {
    Start
    ============================================================ */
 function boot() {
+  // iOS-Safari ignoriert user-scalable=no; ohne das zoomt ein schneller
+  // Pinch die ganze Seite statt der Karte, und man kommt nicht mehr heraus.
+  // Leaflets eigener Zwei-Finger-Zoom läuft über touch-Ereignisse und bleibt.
+  ['gesturestart', 'gesturechange'].forEach(t =>
+    document.addEventListener(t, e => e.preventDefault(), { passive: false }));
   S.data = window.__KOELN__;
   expandDivisions(S.data);
 

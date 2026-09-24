@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="description" content="Werkzeug für Jet Lag: Hide and Seek in Köln — Seeker kreisen das Suchgebiet ein, der Verstecker rechnet sich seine Antworten aus.">
 <meta name="theme-color" content="#0a7f96">
 <title>Rheinjagd</title>
@@ -13,6 +13,8 @@
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,
 .leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}
 .leaflet-container{overflow:hidden;font-family:inherit;background:var(--map-bg);-webkit-tap-highlight-color:transparent}
+/* Gesten gehören der Karte, nie dem Browser-Zoom (fehlte im eingebetteten CSS) */
+.leaflet-container{touch-action:none}
 .leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow{-webkit-user-select:none;user-select:none;-webkit-user-drag:none}
 .leaflet-tile::selection{background:transparent}
 .leaflet-safari .leaflet-tile{image-rendering:-webkit-optimize-contrast}
@@ -112,6 +114,7 @@ body{
   margin:0;background:var(--paper);color:var(--ink);
   font-family:var(--f-ui);font-size:14px;line-height:1.45;
   height:100dvh;overflow:hidden;
+  touch-action:pan-x pan-y; /* kein Seiten-Zoom: Scrollen ja, Pinch nein */
   -webkit-font-smoothing:antialiased;
 }
 button,input,select{font:inherit;color:inherit}
@@ -3889,6 +3892,11 @@ function initTheme() {
    Start
    ============================================================ */
 function boot() {
+  // iOS-Safari ignoriert user-scalable=no; ohne das zoomt ein schneller
+  // Pinch die ganze Seite statt der Karte, und man kommt nicht mehr heraus.
+  // Leaflets eigener Zwei-Finger-Zoom läuft über touch-Ereignisse und bleibt.
+  ['gesturestart', 'gesturechange'].forEach(t =>
+    document.addEventListener(t, e => e.preventDefault(), { passive: false }));
   S.data = window.__KOELN__;
   expandDivisions(S.data);
 
