@@ -2958,6 +2958,7 @@ function save() {
       showDiv: S.showDiv,
       shared: S.shared,
       live: S.geoWatch !== null,
+      nst: S.stations.length,
     }));
   } catch (e) { /* privater Modus: kein Problem */ }
 }
@@ -2984,9 +2985,14 @@ function load() {
     if (typeof d.showZones === 'boolean') S.showZones = d.showZones;
     else if (typeof d.showStations === 'boolean' || typeof d.showRadii === 'boolean')
       S.showZones = !!(d.showStations || d.showRadii);
-    if (Array.isArray(d.manual)) S.manual = new Set(d.manual.filter(Number.isInteger));
-    if (Array.isArray(d.endgame)) S.endgame = new Set(d.endgame.filter(Number.isInteger));
-    if (Array.isArray(d.force)) S.force = new Set(d.force.filter(Number.isInteger));
+    // Stationsmarken sind Indizes. Hat sich die Stationsliste seit dem
+    // Speichern geändert (Runde 24: 245 → 218), zeigten sie auf falsche
+    // Stationen — dann lieber verwerfen. Alte Stände ohne nst hatten 245.
+    if ((d.nst ?? 245) === S.data.stations.length) {
+      if (Array.isArray(d.manual)) S.manual = new Set(d.manual.filter(Number.isInteger));
+      if (Array.isArray(d.endgame)) S.endgame = new Set(d.endgame.filter(Number.isInteger));
+      if (Array.isArray(d.force)) S.force = new Set(d.force.filter(Number.isInteger));
+    }
     if (d.disabled) for (const [k, v] of Object.entries(d.disabled)) S.disabled[k] = new Set(v);
     if (d.history) S.history = d.history.map((h) => ({ ...h, before: 0, after: 0, area: 0 }));
     // Altes Schema (d.collapsed = explizit zugeklappte Gruppen) bewusst nicht

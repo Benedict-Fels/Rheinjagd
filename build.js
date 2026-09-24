@@ -18,6 +18,10 @@ const app = R('src/app.js');
 // koeln.json liegt eingerückt auf der Platte (lesbar im Diff), wird aber
 // kompakt eingebettet — sonst wäre index.html rund dreimal so groß.
 const data = JSON.stringify(JSON.parse(R('data/koeln.json')));
+// Favicon: icon.svg wird eingebettet (keine zusätzliche Anfrage). iOS kann
+// kein SVG als Homescreen-Symbol, dafür liegt apple-touch-icon.png daneben
+// (180 px, ohne runde Ecken — die setzt iOS selbst).
+const favicon = 'data:image/svg+xml,' + encodeURIComponent(R('icon.svg').trim());
 
 const payload =
   '<script>window.__KOELN__=' + data + ';</script>\n' +
@@ -29,6 +33,8 @@ const standalone =
   '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">\n' +
   '<meta name="description" content="Werkzeug für Jet Lag: Hide and Seek in Köln — Seeker kreisen das Suchgebiet ein, der Verstecker rechnet sich seine Antworten aus.">\n' +
   '<meta name="theme-color" content="#0a7f96">\n' +
+  '<link rel="icon" type="image/svg+xml" href="' + favicon + '">\n' +
+  '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n' +
   head + '\n</head>\n<body>\n' +
   body + '\n\n' + payload + '\n' +
   '</body>\n</html>\n';
