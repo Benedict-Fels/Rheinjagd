@@ -1635,24 +1635,72 @@ async function pickHide() {
   if (pt) setHide(pt, false);
 }
 
-/** Ortung als Versteck übernehmen. Bei laufendem Live-Standort ohne Umweg. */
-function hideFromGeo() {
-  if (S.geoPos) { setHide([...S.geoPos], true); return; }
-  if (!navigator.geolocation) { hint('Standort nicht verfügbar'); setTimeout(() => hint(null), 2000); return; }
-  hint('Standort wird gesucht …');
-  navigator.geolocation.getCurrentPosition(
-    (pos) => { hint(null); setHide([pos.coords.longitude, pos.coords.latitude], true); },
-    () => { hint('Standort nicht verfügbar — tippe auf die Karte'); setTimeout(() => hint(null), 2600); },
-    { enableHighAccuracy: true, timeout: 8000 }
-  );
-}
-
 function askHideCoords() {
   askCoords({
     title: 'Versteck eingeben',
     cur: S.hide || S.seeker || [S.home.x, S.home.y],
     set: (p) => setHide(p, true),
+    geo: true,
+    okLabel: 'Versteck setzen',
   });
+}
+
+/** Suchschlüssel für Stationsnamen: klein, ohne Akzente, ß→ss, nur Buchstaben/Ziffern. */
+function stationKey(t) {
+  return String(t).toLowerCase().replace(/ß/g, 'ss')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Versteck per Stationssuche setzen (Bene, Runde 25): Name tippen, Station
+ * antippen — das Versteck liegt dann genau auf der Station. Treffer am
+ * Namensanfang zuerst, dann am Wortanfang, dann irgendwo im Namen.
+ */
+function askHideStation() {
+  const card = document.getElementById('sheetCard');
+  card.innerHTML =
+    '<div class="qtitle" id="sheetTitle">Station suchen</div>' +
+    '<input class="sel" id="stSearch" autocomplete="off" placeholder="Stationsname, z. B. Neumarkt">' +
+    '<div class="note" id="stMsg"></div>' +
+    '<div id="stResults"></div>' +
+    '<button class="ghost" data-a="">Abbrechen</button>';
+  const input = card.querySelector('#stSearch');
+  const msg = card.querySelector('#stMsg');
+  const box = card.querySelector('#stResults');
+  const MAX = 8;
+  const show = () => {
+    const q = stationKey(input.value);
+    box.innerHTML = '';
+    if (!q) { msg.textContent = ''; return; }
+    const hits = [];
+    for (const s of S.stations) {
+      const k = stationKey(s.n);
+      const at = k.indexOf(q);
+      if (at < 0) continue;
+      const words = s.n.split(/[\s\/\-–()]+/).map(stationKey);
+      const rank = at === 0 ? 0 : words.some((w) => w.startsWith(q)) ? 1 : 2;
+      hits.push({ s, rank });
+    }
+    hits.sort((a, b) => a.rank - b.rank || a.s.n.localeCompare(b.s.n, 'de'));
+    if (!hits.length) { msg.textContent = 'Keine Station gefunden.'; return; }
+    msg.textContent = hits.length > MAX ? hits.length + ' Treffer — weiter tippen, um einzugrenzen.' : '';
+    box.innerHTML = hits.slice(0, MAX).map((h, i) =>
+      '<button class="btn flat searchhit" data-i="' + i + '"><b>' + esc(h.s.n) + '</b> · ' +
+      (STATION_KINDS[h.s.k] ? STATION_KINDS[h.s.k].label : h.s.k) + '</button>').join('');
+    box.querySelectorAll('.searchhit').forEach((b) => {
+      b.onclick = () => {
+        const s = hits[+b.dataset.i].s;
+        closeSheet(); setHide([s.x, s.y], true);
+      };
+    });
+  };
+  input.oninput = show;
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') { const b = box.querySelector('.searchhit'); if (b) b.click(); }
+  };
+  card.querySelectorAll('[data-a]').forEach((b) => { b.onclick = closeSheet; });
+  document.getElementById('sheet').hidden = false;
+  setTimeout(() => input.focus(), 40);
 }
 
 /** Womit wird das Versteck gesetzt? */
@@ -1661,14 +1709,14 @@ function showHideSheet() {
   card.innerHTML =
     '<div class="qtitle" id="sheetTitle">Versteck setzen</div>' +
     '<div class="answers">' +
-    '<button class="ans yes" data-h="geo">Mein Standort</button>' +
+    '<button class="ans yes" data-h="station">Station suchen</button>' +
     '<button class="ans" data-h="map">Auf Karte tippen</button>' +
     '<button class="ans" data-h="coord">Koordinaten</button>' +
     '</div><button class="ghost" data-a="">Abbrechen</button>';
   card.querySelectorAll('[data-h]').forEach((b) => {
     b.onclick = () => {
       closeSheet();
-      if (b.dataset.h === 'geo') hideFromGeo();
+      if (b.dataset.h === 'station') askHideStation();
       else if (b.dataset.h === 'map') pickHide();
       else askHideCoords();
     };
@@ -1989,22 +2037,20 @@ function renderAsk() {
       '<div class="empty"><b>Wo stehst du?</b>' +
       'Danach erscheinen alle Fragen mit ihrem Informationsgewinn.</div>' +
       '<div class="setgrid">' +
-      '<button class="btn" id="btnGeo">Mein Standort</button>' +
+      '<button class="btn" id="btnCoord">Koordinaten</button>' +
       '<button class="btn flat" id="btnHome">' + esc(S.home.name) + '</button>' +
       '</div>' +
-      '<div class="setgrid">' +
+      '<div class="setgrid one">' +
       '<button class="btn flat" id="btnPick">Auf Karte tippen</button>' +
-      '<button class="btn flat" id="btnCoord">Koordinaten</button>' +
       '</div>' +
       /* Auch ohne Jäger-Position setzbar: als Verstecker steht man im
          Versteck, lange bevor der erste Standort im Chat ankommt. */
       '<div class="setgrid one">' +
       '<button class="btn flat" id="btnHide">' +
       (S.hide ? 'Versteck ändern' : 'Versteck setzen') + '</button></div>';
-    document.getElementById('btnGeo').onclick = useGeolocation;
     document.getElementById('btnHome').onclick = () => setSeeker([S.home.x, S.home.y], true);
     document.getElementById('btnPick').onclick = pickSeeker;
-    document.getElementById('btnCoord').onclick = () => askCoords();
+    document.getElementById('btnCoord').onclick = () => askCoords({ geo: true });
     document.getElementById('btnHide').onclick = showHideSheet;
     return;
   }
@@ -2029,16 +2075,14 @@ function renderAsk() {
     '<div class="poscoord">' + S.seeker[1].toFixed(5) + ', ' + S.seeker[0].toFixed(5) + '</div></div>' +
     '<span class="posmore" aria-hidden="true">›</span></div>' +
     '<div class="posacts">' +
-    '<button class="minibtn" id="pGeo" title="Mein Standort">GPS</button>' +
     '<button class="minibtn" id="pMap" title="Position auf der Karte antippen">Karte</button>' +
     '<button class="minibtn" id="pHome" title="' + esc(S.home.name) + '">Start</button>' +
     '<button class="minibtn" id="pCoord" title="Koordinaten eingeben">Koord.</button>' +
     '</div>';
   box.appendChild(bar);
-  bar.querySelector('#pGeo').onclick = useGeolocation;
   bar.querySelector('#pMap').onclick = pickSeeker;
   bar.querySelector('#pHome').onclick = () => setSeeker([S.home.x, S.home.y], true);
-  bar.querySelector('#pCoord').onclick = () => askCoords();
+  bar.querySelector('#pCoord').onclick = () => askCoords({ geo: true });
   tapOpen(bar.querySelector('#pInfo'), () => showPosSheet('seeker'));
 
   /* Versteck-Leiste: zweite Position in eigener Farbe, damit die beiden nie
@@ -2062,13 +2106,13 @@ function renderAsk() {
       hideStatusText(st) + '</div></div>' +
       '<span class="posmore" aria-hidden="true">›</span></div>' +
       '<div class="posacts">' +
-      '<button class="minibtn" id="hGeo" title="Versteck = mein Standort">GPS</button>' +
+      '<button class="minibtn" id="hStation" title="Station suchen">Station</button>' +
       '<button class="minibtn" id="hMap" title="Versteck auf der Karte antippen">Karte</button>' +
       '<button class="minibtn" id="hCoord" title="Versteck als Koordinaten">Koord.</button>' +
       '<button class="minibtn" id="hOff" title="Versteck löschen" aria-label="Versteck löschen">✕</button>' +
       '</div>';
     box.appendChild(hb);
-    hb.querySelector('#hGeo').onclick = hideFromGeo;
+    hb.querySelector('#hStation').onclick = askHideStation;
     hb.querySelector('#hMap').onclick = pickHide;
     tapOpen(hb.querySelector('#hInfo'), () => showPosSheet('hide'));
     hb.querySelector('#hCoord').onclick = askHideCoords;
@@ -3185,7 +3229,7 @@ function showSharedSheet(sh, onMap) {
  * Live-Standort an/aus. Getrennt von der Seeker-Position, und das mit Absicht:
  * die Seeker-Position ist der Bezugspunkt, auf den sich die gestellten Fragen
  * beziehen — die darf nicht mitwandern, während man weiterläuft. Der
- * Live-Punkt zeigt nur, wo man gerade ist; mit „GPS“ in der Standortleiste
+ * Live-Punkt zeigt nur, wo man gerade ist; über „Koord.“ → „Mein Standort“
  * übernimmt man ihn bewusst als Seeker-Position.
  */
 function toggleLive() {
@@ -3223,24 +3267,6 @@ function stopLive() {
 function syncLiveButton() {
   const b = document.getElementById('btnLive');
   if (b) b.setAttribute('aria-pressed', String(S.geoWatch !== null));
-}
-
-function useGeolocation() {
-  // Läuft der Live-Standort schon, ist die Position bereits da — kein zweiter
-  // Ortungsvorgang nötig.
-  if (S.geoPos) { setSeeker([...S.geoPos], true); return; }
-  if (!navigator.geolocation) { hint('Standort nicht verfügbar'); setTimeout(() => hint(null), 2000); return; }
-  hint('Standort wird gesucht …');
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      hint(null);
-      S.seeker = [pos.coords.longitude, pos.coords.latitude];
-      S.map.setView([S.seeker[1], S.seeker[0]], 14);
-      renderMarks(); renderAsk(); save();
-    },
-    () => { hint('Standort nicht verfügbar — tippe auf die Karte'); setTimeout(() => hint(null), 2600); },
-    { enableHighAccuracy: true, timeout: 8000 }
-  );
 }
 
 /* ---------- Diverses ---------- */

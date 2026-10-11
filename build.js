@@ -23,9 +23,16 @@ const data = JSON.stringify(JSON.parse(R('data/koeln.json')));
 // (180 px, ohne runde Ecken — die setzt iOS selbst).
 const favicon = 'data:image/svg+xml,' + encodeURIComponent(R('icon.svg').trim());
 
+// Installierbare App (PWA): manifest.webmanifest + sw.js liegen neben
+// index.html. Der Service Worker greift nur über http(s) — beim Öffnen per
+// file:// passiert einfach nichts.
+const swRegister =
+  "<script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))" +
+  "addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});</script>";
+
 const payload =
   '<script>window.__KOELN__=' + data + ';</script>\n' +
-  '<script>\n' + app + '</script>';
+  '<script>\n' + app + '</script>\n' + swRegister;
 
 const standalone =
   '<!doctype html>\n<html lang="de">\n<head>\n' +
@@ -35,6 +42,10 @@ const standalone =
   '<meta name="theme-color" content="#0a7f96">\n' +
   '<link rel="icon" type="image/svg+xml" href="' + favicon + '">\n' +
   '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n' +
+  '<link rel="manifest" href="manifest.webmanifest">\n' +
+  '<meta name="mobile-web-app-capable" content="yes">\n' +
+  '<meta name="apple-mobile-web-app-capable" content="yes">\n' +
+  '<meta name="apple-mobile-web-app-title" content="Rheinjagd">\n' +
   head + '\n</head>\n<body>\n' +
   body + '\n\n' + payload + '\n' +
   '</body>\n</html>\n';
