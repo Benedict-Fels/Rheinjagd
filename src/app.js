@@ -23,10 +23,11 @@ const CATS = {
   theme_park: { label: 'Freizeitpark',  plural: 'Freizeitparks', g: 'm' },
   golf:       { label: 'Golfplatz',     plural: 'Golfplätze',    g: 'm' },
   consulate:  { label: 'Konsulat',      plural: 'Konsulate',     g: 'n' },
+  airport:    { label: 'Flughafen',     plural: 'Flughäfen',     g: 'm' },
 };
 
 /** Reihenfolge in den Fragenlisten — häufige und nützliche zuerst. */
-const CAT_ORDER = ['station', 'park', 'mangal', 'museum', 'cinema', 'library',
+const CAT_ORDER = ['station', 'park', 'mangal', 'airport', 'museum', 'cinema', 'library',
                    'hospital', 'zoo', 'aquarium', 'theme_park', 'golf', 'consulate'];
 
 /* Beugung der Kategoriennamen in den Fragetexten. Ein Wort je Geschlecht,
@@ -100,6 +101,8 @@ const S = {
   panelH: 0,                   // gemerkte Arbeitshöhe des Panels in px (0 = Stylesheet)
   panelReopen: false,          // war für eine Punktauswahl zugeklappt, soll zurück
   showZones: false,            // Stationspunkte UND Versteckradien auf der Karte
+  showLines: false,            // Linienverläufe in Linienfarbe auf der Karte (Runde 26)
+  showGain: true,              // Wirkung der Fragen (Anteil wegfallender Stationen) zeigen
   expanded: {},                  // Titel aufgeklappter Gruppen (Fragen- und Orte-Tab) —
                                   // Standard ist zugeklappt, hier stehen nur Ausnahmen
   customPois: [],                // benutzerdefinierte Orte: {id,c,n,x,y}
@@ -222,6 +225,87 @@ function boxDiagKm() {
   return Math.hypot(w, h);
 }
 
+/* ---------- Linien, Stationsnamen, Schnellfahrstrecken (Runde 25) ---------- */
+
+/** Abstand zur nächsten Schnellfahrstrecke (OSM highspeed=yes, ab 200 km/h). */
+function distToHighspeedKm(x, y, data) {
+  let best = Infinity;
+  for (const h of (data || S.data).highspeed || []) best = Math.min(best, distToLineKm(x, y, h.g));
+  return best;
+}
+
+/** Name der nächstgelegenen Schnellfahrstrecke — nur für die Anzeige. */
+function nearestHighspeed(pt) {
+  let best = Infinity, ref = '';
+  for (const h of S.data.highspeed || []) {
+    const d = distToLineKm(pt[0], pt[1], h.g);
+    if (d < best) { best = d; ref = h.ref; }
+  }
+  return { d: best, name: HS_NAMES[ref] || ('Strecke ' + ref) };
+}
+const HS_NAMES = { 2600: 'Köln–Aachen', 2650: 'Köln–Duisburg', 2690: 'Köln–Rhein/Main' };
+
+/** Länge eines Stationsnamens: Buchstaben und Ziffern, ohne Leerzeichen,
+    Bindestriche, Schrägstriche und Klammern. */
+function nameLen(n) { return String(n).replace(/[^\p{L}\p{N}]/gu, '').length; }
+
+/** Anzeigename einer Linie: KVB-Linien sind nackte Nummern. */
+function lineLabel(l) { return /^\d+$/.test(l) ? 'Linie ' + l : l; }
+
+/** Alle Linien, die an einer Station halten: S-Bahn, KVB, RE, RB. */
+function allLines() {
+  if (S._allLines) return S._allLines;
+  const set = new Set();
+  for (const s of S.stations) for (const l of s.l || []) set.add(l);
+  const rank = (l) => (/^S/.test(l) ? 0 : /^\d/.test(l) ? 1 : /^RE/.test(l) ? 2 : 3);
+  S._allLines = [...set].sort((a, b) => rank(a) - rank(b) ||
+    a.localeCompare(b, 'de', { numeric: true }));
+  return S._allLines;
+}
+
+/** Nächste Station zu einem Punkt — `pool` default: alle Stationen. */
+function nearestStation(pt, pool) {
+  let best = Infinity, bs = null;
+  for (const s of pool || S.stations) {
+    const d = distKm(s.x, s.y, pt[0], pt[1]);
+    if (d < best) { best = d; bs = s; }
+  }
+  return bs ? { s: bs, d: best } : null;
+}
+
+/** Stationen nach Entfernung — für die Auswahl „meine Station". */
+function stationsByDistance(pt, k) {
+  return S.stations
+    .map((s) => ({ s, d: distKm(s.x, s.y, pt[0], pt[1]) }))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, k);
+}
+
+/** Die Station des Verstecks: nächste zugelassene Station. */
+function hideStation() {
+  if (!S.hide) return null;
+  const r = nearestStation(S.hide, hideStations());
+  return r ? r.s : null;
+}
+
+/** Frage mit gewählter Linie bzw. Station: Name, Text und Kontext passen
+    sich an — im Verlauf steht dann „Linie S11", nicht nur „Linie". */
+function withChoice(q, v) {
+  if (q.type === 'match-line') {
+    return { ...q, line: v, name: 'Linie ' + v,
+      ask: 'Hält <em>' + esc(lineLabel(v)) + '</em> an deiner Station?' };
+  }
+  if (q.type === 'match-namelen') {
+    const s = S.stations.find((t) => t.n === v) || null;
+    if (!s) return q;
+    const len = nameLen(s.n);
+    return { ...q, station: s.n, len, name: 'Namenslänge (' + len + ' Zeichen)',
+      ask: 'Hat der Name deiner Station gleich viele Zeichen wie <em>' + esc(s.n) +
+           '</em> (' + len + ')?' };
+  }
+  return q;
+}
+
 /**
  * Stationen übernehmen und die Felder vorrechnen, die jede Fragenauswertung
  * braucht. Läuft einmal beim Start — bei 245 Stationen ist das ein Wimpernschlag
@@ -237,6 +321,8 @@ function buildStations(data) {
     d2: new Int16Array(n).fill(-1), d3: new Int16Array(n).fill(-1),
     d2Dist: new Float64Array(n), d3Dist: new Float64Array(n),
     poi: {},                        // Cache je Kategorie (+ abgeschaltete Orte)
+    hs: new Float64Array(n),        // Abstand zur nächsten Schnellfahrstrecke (km)
+    nlen: new Uint8Array(n),        // Länge des Stationsnamens (Zeichen)
   };
 
   const cityBox = bboxOf(data.city_boundary);
@@ -244,6 +330,8 @@ function buildStations(data) {
     const s = list[i];
     F.side[i] = sideOfLine(s.x, s.y, data.rhein);
     F.rhein[i] = distToLineKm(s.x, s.y, data.rhein);
+    F.hs[i] = distToHighspeedKm(s.x, s.y, data);
+    F.nlen[i] = nameLen(s.n);
     F.inKoeln[i] = (s.x >= cityBox[0] && s.x <= cityBox[2] &&
                     s.y >= cityBox[1] && s.y <= cityBox[3] &&
                     pointInGeom(s.x, s.y, data.city_boundary)) ? 1 : 0;
@@ -269,7 +357,18 @@ function buildStations(data) {
 }
 
 /** Zählt die Station nach den eingestellten Stationsarten? */
-function kindOk(s) { return !!S.hideKinds[s.k]; }
+function kindOk(s) {
+  // Umsteigepunkte mit einem Namen (Runde 27, k = 'both') zählen, sobald eine
+  // der beiden Arten eingeschaltet ist.
+  if (s.k === 'both') return !!(S.hideKinds.kvb || S.hideKinds.rail);
+  return !!S.hideKinds[s.k];
+}
+
+/** Anzeigename der Stationsart. */
+function kindLabel(s) {
+  if (s.k === 'both') return 'Stadtbahn + Bahnhof';
+  return STATION_KINDS[s.k] ? STATION_KINDS[s.k].label : s.k;
+}
 
 /**
  * Ist die Station noch ein mögliches Versteck?
@@ -649,6 +748,22 @@ function stationDecider(q, ans) {
       const my = distToLineKm(q.seeker[0], q.seeker[1], S.data.rhein);
       return { pos, at: (i) => ({ hit: F.rhein[i] < my, margin: Math.abs(F.rhein[i] - my) }) };
     }
+    case 'measure-hs': {
+      const my = distToHighspeedKm(q.seeker[0], q.seeker[1]);
+      return { pos, at: (i) => ({ hit: F.hs[i] < my, margin: Math.abs(F.hs[i] - my) }) };
+    }
+    case 'match-line': {
+      /* Keine Grenze, keine Marge: eine Linie hält an der Station oder nicht.
+         Stationen ohne bekannte Linie (Daten-Lücke) fallen nie heraus. */
+      return { pos, at: (i) => {
+        const l = ST[i].l;
+        if (!l || !l.length) return { hit: pos, margin: Infinity };
+        return { hit: l.includes(q.line), margin: Infinity };
+      } };
+    }
+    case 'match-namelen': {
+      return { pos, at: (i) => ({ hit: F.nlen[i] === q.len, margin: Infinity }) };
+    }
     case 'measure-border': {
       const my = distToBorderKm(q.level, q.seeker);
       const d = F[q.level + 'Dist'];
@@ -739,7 +854,8 @@ function applyQuestion(q, ans) {
 const ANSWER_SETS = {
   'match-poi': ['yes', 'no'], 'match-div': ['yes', 'no'],
   'measure-poi': ['closer', 'further'], 'measure-rhein': ['closer', 'further'],
-  'measure-border': ['closer', 'further'],
+  'measure-border': ['closer', 'further'], 'measure-hs': ['closer', 'further'],
+  'match-line': ['yes', 'no'], 'match-namelen': ['yes', 'no'],
   radar: ['yes', 'no'], thermo: ['hotter', 'colder'],
 };
 
@@ -765,11 +881,14 @@ function evaluate(q) {
   if (!live.length) return null;
   const now = liveArea();
 
+  /* Seit Runde 27 zählt die Wirkung nach Stationen, nicht nach Fläche: ein
+     Versteck ist eine Station, und eine Station fällt ganz oder gar nicht —
+     auch wenn drei Viertel ihrer Zone schon außerhalb liegen. */
   const opts = answers.map((a) => {
     const test = stationTest(q, a);
     const keep = live.filter((s) => stationPinned(s.i) || test(s.i));
     const area = zoneArea(keep);
-    return { answer: a, keep: keep.length, area, frac: now > 0 ? area / now : 0 };
+    return { answer: a, keep: keep.length, area, frac: keep.length / live.length };
   });
   const worst = Math.max(...opts.map((o) => o.frac));
   return { opts, worst, total: live.length, area: now, useless: worst >= 0.999 };
@@ -857,6 +976,22 @@ function hideAnswer(q) {
     case 'measure-border': {
       return cmp(distToBorderKm(q.level, h), distToBorderKm(q.level, q.seeker),
                  HIDE_NEAR_MEASURE_KM);
+    }
+    case 'measure-hs': {
+      const a = nearestHighspeed(h), b = nearestHighspeed(q.seeker);
+      return cmp(a.d, b.d, HIDE_NEAR_MEASURE_KM, a.name, b.name);
+    }
+    case 'match-line': {
+      const st = hideStation();
+      if (!st || !st.l || !st.l.length) return null;
+      return same(st.l.includes(q.line), st.n + ' (' + st.l.map(lineLabel).join(', ') + ')',
+                  lineLabel(q.line), Infinity, 0);
+    }
+    case 'match-namelen': {
+      const st = hideStation();
+      if (!st) return null;
+      const n = nameLen(st.n);
+      return same(n === q.len, st.n + ' (' + n + ')', q.station + ' (' + q.len + ')', Infinity, 0);
     }
     case 'match-poi': {
       const a = nearestTwoAt(q.cat, h), b = nearestAt(q.cat, q.seeker);
@@ -959,6 +1094,40 @@ function buildCatalog() {
     ask: 'Ist dein <em>Stadtteil</em> derselbe wie meiner?',
     ctx: () => S.data.divisions.d3.features[divIndexAt('d3', sk)]?.name || 'außerhalb',
   });
+
+  /* Linie (wie in der Serie): die Jäger sitzen in einer Linie und fragen, ob
+     sie an der Station des Verstecks hält. Vorbelegt mit einer Linie der
+     nächsten Station, im Dialog frei wählbar. */
+  const lines = allLines();
+  if (lines.length) {
+    const near = nearestStation(sk);
+    const pre = (near && near.d < 0.6 && lines.find((l) => (near.s.l || []).includes(l))) || lines[0];
+    const q = withChoice({
+      type: 'match-line', seeker: sk, choose: 'line',
+      sub: 'Hält meine Linie an deiner Station?',
+    }, pre);
+    /* ctx bekommt die aktuelle Frage mit: nach einer Auswahl im Dialog ist das
+       eine neue Kopie, die alte Closure kennte nur die Vorbelegung. */
+    q.ctx = (x = q) => {
+      const n = hideStations().filter((s) => (s.l || []).includes(x.line)).length;
+      return lineLabel(x.line) + ' · hält an ' + n + ' Stationen';
+    };
+    matching.push(q);
+  }
+
+  /* Länge des Stationsnamens: vorbelegt mit der nächsten Station. */
+  {
+    const near = nearestStation(sk);
+    if (near) {
+      const q = withChoice({
+        type: 'match-namelen', seeker: sk, choose: 'station',
+        sub: 'Gleich langer Stationsname?',
+      }, near.s.n);
+      q.ctx = (x = q) => x.station + ' · ' + x.len + ' Zeichen';
+      matching.push(q);
+    }
+  }
+
   for (const c of CAT_ORDER) {
     if (!activePois(c).length) continue;
     matching.push({
@@ -980,6 +1149,14 @@ function buildCatalog() {
     ask: 'Bist du näher am <em>Rhein</em> oder weiter weg als ich?',
     ctx: () => distToLineKm(sk[0], sk[1], S.data.rhein).toFixed(2) + ' km entfernt',
   });
+  if ((S.data.highspeed || []).length) {
+    measuring.push({
+      type: 'measure-hs', seeker: sk,
+      name: 'Schnellfahrstrecke', sub: 'Näher an einer Schnellfahrstrecke?',
+      ask: 'Bist du näher an einer <em>Schnellfahrstrecke</em> oder weiter weg als ich?',
+      ctx: () => { const r = nearestHighspeed(sk); return r.d.toFixed(2) + ' km · ' + r.name; },
+    });
+  }
   measuring.push({
     type: 'measure-border', level: 'd2', seeker: sk,
     name: 'Bezirksgrenze', sub: 'Näher an einer Bezirksgrenze?',
@@ -1077,6 +1254,10 @@ function initMap() {
 
   S.layers.excl = L.layerGroup().addTo(S.map);
   S.layers.divs = L.layerGroup().addTo(S.map);
+  /* Linien liegen in einer eigenen Ebene unter den Stationspunkten, damit
+     ein Tipp auf eine Station nicht an der Linie hängen bleibt. */
+  S.map.createPane('linesPane').style.zIndex = 390;
+  S.layers.lines = L.layerGroup().addTo(S.map);
   S.layers.area = L.layerGroup().addTo(S.map);
   S.layers.edges = L.layerGroup().addTo(S.map);
   S.layers.marks = L.layerGroup().addTo(S.map);
@@ -1094,10 +1275,129 @@ function initMap() {
   S.map.on('zoomend', () => {
     if (S.showZones || S.poiCat) drawArea();
     if (S.showDiv.d2 || S.showDiv.d3) drawDivisions();
+    if (S.showLines) drawLines();
   });
   drawArea();
   drawDivisions();
+  drawLines();
   fitArea();
+}
+
+/* ---------- Linien auf der Karte (Runde 26) ----------
+   Farben aus dem KVB-Netzplan „Bahnen in Köln 2025/26" abgenommen. S-Bahn und
+   Regionalverkehr haben dort keine Einzelfarben, sondern eine gemeinsame —
+   gestrichelt wie im Plan. Gezeichnet wird Station zu Station in der
+   Reihenfolge der OSM-Routen (`routes` in koeln.json), also schematisch,
+   nicht gleisgenau. */
+const LINE_COLORS = {
+  1: '#c10d19', 3: '#f0a6c3', 4: '#e0559a', 5: '#a39acf', 7: '#d27c41',
+  9: '#ee8d87', 12: '#98c022', 13: '#a9866a', 15: '#5baf33', 16: '#0ab1aa',
+  17: '#88d3f0', 18: '#1095d6',
+};
+const LINE_S = '#f2a23c', LINE_R = '#6ead98';
+
+function lineStyle(l) {
+  if (/^S/.test(l)) return { color: LINE_S };
+  if (/^R/.test(l)) return { color: LINE_R };
+  return { color: LINE_COLORS[l] || '#666' };
+}
+
+/** Reihenfolge nebeneinanderliegender Linien: KVB nach Nummer, dann S, RE, RB. */
+function lineRank(l) {
+  return (/^\d/.test(l) ? 0 : /^S/.test(l) ? 1000 : /^RE/.test(l) ? 2000 : 3000) +
+         (parseInt(l.replace(/\D/g, ''), 10) || 0);
+}
+
+/** Kanten (Stationspaare) mit den Linien, die sie befahren — einmal je Datenstand. */
+function lineEdges() {
+  if (S._lineEdges) return S._lineEdges;
+  const edges = new Map();
+  for (const [l, seqs] of Object.entries(S.data.routes || {})) {
+    for (const seq of seqs) {
+      for (let k = 0; k < seq.length - 1; k++) {
+        const a = Math.min(seq[k], seq[k + 1]), b = Math.max(seq[k], seq[k + 1]);
+        const key = a + '-' + b;
+        if (!edges.has(key)) edges.set(key, { a, b, lines: [], members: {} });
+        const e = edges.get(key);
+        /* S-Bahnen teilen sich eine Farbe, RE/RB ebenso: nebeneinander ergäbe
+           das zwischen Hbf und Deutz achtzehn gleiche Streifen. Wie im Plan
+           wird je Strecke ein S- und ein Regio-Strang gezeichnet; welche
+           Linien darin fahren, sagt der Tooltip. */
+        const g = /^S/.test(l) ? 'S' : /^R/.test(l) ? 'R' : l;
+        if (!e.lines.includes(g)) e.lines.push(g);
+        (e.members[g] = e.members[g] || []).includes(l) || e.members[g].push(l);
+      }
+    }
+  }
+  for (const e of edges.values()) {
+    e.lines.sort((x, y) => lineRank(x) - lineRank(y));
+    for (const g of Object.keys(e.members)) e.members[g].sort((x, y) => lineRank(x) - lineRank(y));
+  }
+  S._lineEdges = [...edges.values()];
+  return S._lineEdges;
+}
+
+/** Strichstärke der Linien je Zoomstufe — herausgezoomt schmal, sonst wird
+    der Stadtkern mit sieben Linien nebeneinander zum Brei. */
+function lineWeight() {
+  const z = S.map ? S.map.getZoom() : 12;
+  return z >= 15 ? 6 : z >= 14 ? 5 : z >= 13 ? 4 : z >= 12 ? 3 : 2.2;
+}
+
+/**
+ * Linien zeichnen (Runde 28): Fahren mehrere Linien dieselbe Strecke, liegen
+ * sie nebeneinander wie im Netzplan. Versatz in Bildschirmpixeln, deshalb bei
+ * jedem Zoom neu. Jede Kante wird von West nach Ost orientiert, damit eine
+ * Linie entlang eines Korridors auf derselben Seite bleibt.
+ * KVB: Farbe mit hellem Rand. S-Bahn/Regio: dunkler Rand, Linienfarbe, weiße
+ * Striche in der Mitte — wie im KVB-Plan.
+ */
+function drawLines() {
+  if (S.noMap || !S.layers.lines) return;
+  S.layers.lines.clearLayers();
+  if (!S.showLines || !S.data.routes) return;
+  const map = S.map;
+  const renderer = S.linesRenderer || (S.linesRenderer = L.svg({ pane: 'linesPane' }));
+  const ST = S.stations;
+  const w = lineWeight(), gap = w + 1.5;
+  const segs = [];
+  for (const e of lineEdges()) {
+    let p1 = map.latLngToLayerPoint([ST[e.a].y, ST[e.a].x]);
+    let p2 = map.latLngToLayerPoint([ST[e.b].y, ST[e.b].x]);
+    if (p2.x < p1.x || (p2.x === p1.x && p2.y < p1.y)) [p1, p2] = [p2, p1];
+    const dx = p2.x - p1.x, dy = p2.y - p1.y, len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;
+    const n = e.lines.length;
+    e.lines.forEach((l, k) => {
+      const off = (k - (n - 1) / 2) * gap;
+      const q1 = map.layerPointToLatLng([p1.x + nx * off, p1.y + ny * off]);
+      const q2 = map.layerPointToLatLng([p2.x + nx * off, p2.y + ny * off]);
+      segs.push({ l, pts: [q1, q2], rail: /^[SR]/.test(l),
+        label: e.members[l].map(lineLabel).join(', ') });
+    });
+  }
+  const base = { renderer, pane: 'linesPane', lineCap: 'round', lineJoin: 'round', interactive: false };
+  // 1. Ränder
+  for (const g of segs) {
+    L.polyline(g.pts, g.rail
+      ? { ...base, color: '#1f2937', weight: w + 2.5, opacity: .85 }
+      : { ...base, color: '#ffffff', weight: w + 2, opacity: .9 }).addTo(S.layers.lines);
+  }
+  // 2. Linienfarbe (mit Tooltip)
+  for (const g of segs) {
+    const st = lineStyle(g.l);
+    L.polyline(g.pts, { ...base, interactive: true, bubblingMouseEvents: true,
+      color: st.color, weight: w, opacity: 1 })
+      .bindTooltip(esc(g.label), { sticky: true }).addTo(S.layers.lines);
+  }
+  // 3. Bahn: weiße Striche in der Mitte
+  const dash = Math.max(3, w * 1.6);
+  for (const g of segs) {
+    if (!g.rail) continue;
+    L.polyline(g.pts, { ...base, color: '#ffffff', weight: Math.max(1, w * 0.4),
+      opacity: .95, lineCap: 'butt',
+      dashArray: /^S/.test(g.l) ? dash + ' ' + dash : (dash / 2) + ' ' + dash }).addTo(S.layers.lines);
+  }
 }
 
 /**
@@ -1251,7 +1551,7 @@ function openStationSheet(s) {
 
   card.innerHTML =
     '<div class="qtitle" id="sheetTitle">' + esc(s.n) + '</div>' +
-    '<div class="qmeta">' + (STATION_KINDS[s.k] ? STATION_KINDS[s.k].label : s.k) +
+    '<div class="qmeta">' + kindLabel(s) +
     ' · ' + state + ' · ' + s.y.toFixed(5) + ', ' + s.x.toFixed(5) + '</div>' +
     '<div class="answers">' +
     '<button class="ans ' + (manual ? 'yes' : 'no') + '" id="stManual">' +
@@ -1431,7 +1731,7 @@ function defineExclusionLayer() {
       o.clearRect(0, 0, buf.width, buf.height);
       o.setTransform(dpr, 0, 0, dpr, 0, 0);
       o.fillStyle = getComputedStyle(document.body)
-        .getPropertyValue('--exclude').trim() || '#c0392b';
+        .getPropertyValue('--excl-map').trim() || '#2a3340';
 
       const px = (lat, lng) => {
         const p = map.latLngToLayerPoint([lat, lng]);
@@ -1686,7 +1986,7 @@ function askHideStation() {
     msg.textContent = hits.length > MAX ? hits.length + ' Treffer — weiter tippen, um einzugrenzen.' : '';
     box.innerHTML = hits.slice(0, MAX).map((h, i) =>
       '<button class="btn flat searchhit" data-i="' + i + '"><b>' + esc(h.s.n) + '</b> · ' +
-      (STATION_KINDS[h.s.k] ? STATION_KINDS[h.s.k].label : h.s.k) + '</button>').join('');
+      kindLabel(h.s) + '</button>').join('');
     box.querySelectorAll('.searchhit').forEach((b) => {
       b.onclick = () => {
         const s = hits[+b.dataset.i].s;
@@ -2144,7 +2444,7 @@ function renderAsk() {
     for (const q of grp.items) {
       const row = document.createElement('button');
       row.className = 'qrow';
-      const ev = q.needsSecond || q.type === 'tentacle' ? null : evaluate(q);
+      const ev = !S.showGain || q.needsSecond || q.type === 'tentacle' ? null : evaluate(q);
       const ha = hideAnswer(q);
 
       let gain = '';
@@ -2155,6 +2455,8 @@ function renderAsk() {
           '<div class="gain"><div class="gainbar"><i style="width:' + cut + '%"></i></div>' +
           '<span class="gaintxt">' + (ev.useless ? 'ohne Wirkung' : '−' + cut + '% min.') + '</span></div>';
         if (ev.useless) row.classList.add('dead');
+      } else if (!S.showGain) {
+        gain = '';
       } else if (q.type === 'tentacle') {
         const n = inReach(q.cat, S.seeker, q.mi).length;
         gain = '<div class="gain"><span class="gaintxt">' + n + ' in Reichweite</span></div>';
@@ -2226,19 +2528,37 @@ async function openSheet(q) {
     showTentacleSheet(q);
     return;
   }
-  showSheet(q, evaluate(q));
+  showSheet(q, S.showGain ? evaluate(q) : null);
 }
 
 function showSheet(q, ev) {
   const card = document.getElementById('sheetCard');
   const answers = ANSWER_SETS[q.type] || ['yes', 'no'];
   const ha = hideAnswer(q);
-  let meta = q.ctx ? q.ctx() : '';
+  let meta = q.ctx ? q.ctx(q) : '';
   if (q.type === 'thermo') meta = 'Tatsächlich gefahren: ' + q.realKm.toFixed(2) + ' km';
 
   let html =
     '<div class="qtitle" id="sheetTitle">' + q.ask + '</div>' +
     '<div class="qmeta">' + meta + '</div>';
+  /* Linie bzw. eigene Station wählen. Jede Änderung baut den Dialog mit der
+     neuen Frage neu — Flächen, Stationszahlen und Verstecker-Antwort passen
+     dann sofort. */
+  if (q.choose === 'line') {
+    html += '<select class="sel" id="qChoice">' + allLines().map((l) =>
+      '<option value="' + esc(l) + '"' + (l === q.line ? ' selected' : '') + '>' +
+      esc(lineLabel(l)) + '</option>').join('') + '</select>';
+  } else if (q.choose === 'station') {
+    const list = stationsByDistance(q.seeker, 8);
+    if (!list.some((r) => r.s.n === q.station)) {
+      const cur = S.stations.find((t) => t.n === q.station);
+      if (cur) list.unshift({ s: cur, d: distKm(cur.x, cur.y, q.seeker[0], q.seeker[1]) });
+    }
+    html += '<select class="sel" id="qChoice">' + list.map((r) =>
+      '<option value="' + esc(r.s.n) + '"' + (r.s.n === q.station ? ' selected' : '') + '>' +
+      esc(r.s.n) + ' · ' + nameLen(r.s.n) + ' Zeichen · ' + fmtDist(r.d) + '</option>').join('') +
+      '</select>';
+  }
   /* Hier ist Platz für die Namen: gerade sie machen die Zahl prüfbar. Steht
      da ein Park, neben dem du gar nicht sitzt, fehlt er in den Daten — das
      sieht man nur, wenn er dasteht. */
@@ -2248,7 +2568,7 @@ function showSheet(q, ev) {
   for (const a of answers) {
     const o = ev && ev.opts.find((x) => x.answer === a);
     const cls = (a === 'no' || a === 'further' || a === 'colder') ? 'no' : 'yes';
-    const sub = o ? fmtArea(o.area) + ' km² · ' + o.keep + ' Stat.' : '';
+    const sub = o ? o.keep + ' Stat. · ' + fmtArea(o.area) + ' km²' : '';
     html += '<button class="ans ' + cls + (ha && ha.ans === a ? ' true' : '') +
             '" data-a="' + a + '">' +
             ANS_LABEL[a] + (sub ? '<small>' + sub + '</small>' : '') + '</button>';
@@ -2256,6 +2576,11 @@ function showSheet(q, ev) {
   html += '</div><button class="ghost" data-a="">Abbrechen</button>';
   card.innerHTML = html;
 
+  const sel = card.querySelector('#qChoice');
+  if (sel) sel.onchange = () => {
+    const nq = withChoice(q, sel.value);
+    showSheet(nq, S.showGain ? evaluate(nq) : null);
+  };
   card.querySelectorAll('[data-a]').forEach((b) => {
     b.onclick = () => {
       const a = b.dataset.a;
@@ -2562,7 +2887,65 @@ function renderHist() {
   document.getElementById('btnClear').onclick = () => { S.history = []; recompute(); };
 }
 
-/* ---------- Gebiet-Tab ---------- */
+/* ---------- Einstellungen-Tab (früher „Gebiet“) ---------- */
+/* ===== App installieren (PWA) =====
+   Chrome/Edge/Samsung melden über beforeinstallprompt, dass die Seite
+   installierbar ist; das Ereignis wird aufgehoben und erst beim Tippen auf
+   „Installieren“ ausgelöst. iOS kennt das nicht — dort geht es nur von Hand
+   über Safari, deshalb steht da eine Anleitung statt eines Knopfs. */
+let installPrompt = null;
+addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  renderSetupIfOpen();
+});
+addEventListener('appinstalled', () => {
+  installPrompt = null;
+  renderSetupIfOpen();
+});
+
+function isInstalledApp() {
+  return matchMedia('(display-mode: standalone)').matches ||
+    matchMedia('(display-mode: fullscreen)').matches ||
+    navigator.standalone === true;
+}
+
+function isIOS() {
+  return /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function installGroupHtml() {
+  let body;
+  if (isInstalledApp()) {
+    body = '<div class="note">Rheinjagd läuft schon als installierte App.</div>';
+  } else if (installPrompt) {
+    body = '<div class="note">Legt Rheinjagd als App auf den Startbildschirm — ' +
+      'öffnet dann ohne Browserleiste und startet auch ohne Netz mit dem letzten Stand.</div>' +
+      '<div class="setgrid one"><button class="btn" id="appInstall">Installieren</button></div>';
+  } else if (isIOS()) {
+    body = '<div class="note">Auf dem iPhone geht das nur in <b>Safari</b>: unten auf ' +
+      '<b>Teilen</b> tippen, dann <b>„Zum Home-Bildschirm“</b>.</div>';
+  } else {
+    body = '<div class="note">Im Browsermenü <b>⋮</b> auf <b>„App installieren“</b> bzw. ' +
+      '<b>„Zum Startbildschirm hinzufügen“</b> tippen.</div>';
+  }
+  return '<div class="group"><div class="grouphd">App</div>' + body + '</div>';
+}
+
+function bindInstall(box) {
+  const b = box.querySelector('#appInstall');
+  if (!b) return;
+  b.onclick = async () => {
+    const p = installPrompt;
+    if (!p) return;
+    installPrompt = null;   // ein Prompt lässt sich nur einmal zeigen
+    p.prompt();
+    try { await p.userChoice; } catch (e) {}
+    renderSetupIfOpen();
+  };
+}
+
 function renderSetup() {
   const box = document.getElementById('tabSetup');
   const active = hideStations();
@@ -2590,6 +2973,11 @@ function renderSetup() {
     '<div class="catrow"><b>Stationen und Radien auf der Karte</b>' +
     '<button class="tgl" role="switch" aria-checked="' + !!S.showZones + '" id="zoneShow" ' +
     'aria-label="Stationen und Versteckradien auf der Karte"></button></div>' +
+    (S.data.routes
+      ? '<div class="catrow"><b>Linien auf der Karte</b>' +
+        '<button class="tgl" role="switch" aria-checked="' + !!S.showLines + '" id="linesShow" ' +
+        'aria-label="Linienverläufe in Linienfarben auf der Karte"></button></div>'
+      : '') +
     '<div class="note">Punkt antippen, um eine Station von Hand zu behandeln.</div>' +
     '<button class="btn" id="zoneApply" hidden>Übernehmen</button>' +
     '</div>' +
@@ -2622,7 +3010,16 @@ function renderSetup() {
     '<div class="setgrid">' +
     '<button class="btn flat" id="sHome">Auf Karte setzen</button>' +
     '<button class="btn flat" id="sHomeCoord">Koordinaten</button>' +
-    '</div></div>';
+    '</div></div>' +
+
+    '<div class="group"><div class="grouphd">Fragen</div>' +
+    '<div class="catrow"><b>Wirkung der Fragen anzeigen</b>' +
+    '<button class="tgl" role="switch" aria-checked="' + !!S.showGain + '" id="gainShow" ' +
+    'aria-label="Wirkung der Fragen anzeigen"></button></div>' +
+    '<div class="note">Zeigt je Frage, wie viele der möglichen Stationen im ungünstigsten ' +
+    'Fall wegfallen. Aus, wenn ihr ohne Hilfe abwägen wollt.</div></div>' +
+
+    installGroupHtml();
 
   /* Versteckzone */
   const zoneApply = box.querySelector('#zoneApply');
@@ -2655,6 +3052,17 @@ function renderSetup() {
     e.currentTarget.setAttribute('aria-checked', String(S.showZones));
     drawArea(); save();
   };
+  box.querySelector('#gainShow').onclick = (e) => {
+    S.showGain = !S.showGain;
+    e.currentTarget.setAttribute('aria-checked', String(S.showGain));
+    renderAsk(); save();
+  };
+  const linesBtn = box.querySelector('#linesShow');
+  if (linesBtn) linesBtn.onclick = (e) => {
+    S.showLines = !S.showLines;
+    e.currentTarget.setAttribute('aria-checked', String(S.showLines));
+    drawLines(); save();
+  };
 
   box.querySelectorAll('[data-undo]').forEach((b) => {
     b.onclick = () => {
@@ -2669,6 +3077,7 @@ function renderSetup() {
     changeArea({ home: { name: placeName(pt), x: pt[0], y: pt[1] } });
   };
   box.querySelector('#sHomeCoord').onclick = () => askHomeCoords();
+  bindInstall(box);
 }
 
 /** Flächenangabe mit passender Genauigkeit. */
@@ -2992,7 +3401,7 @@ function save() {
       hide: S.hide,
       home: S.home,
       hideRadiusM: S.hideRadiusM, hideKinds: S.hideKinds,
-      showZones: S.showZones,
+      showZones: S.showZones, showLines: S.showLines, showGain: S.showGain,
       manual: [...S.manual], endgame: [...S.endgame], force: [...S.force],
       history: S.history.map((h) => ({ q: h.q, ans: h.ans, label: h.label, answerText: h.answerText })),
       disabled: Object.fromEntries(Object.entries(S.disabled).map(([k, v]) => [k, [...v]])),
@@ -3027,6 +3436,8 @@ function load() {
     // Bis Runde 13 waren Stationspunkte und Radien zwei Schalter — ein alter
     // Spielstand zählt als "an", wenn einer der beiden an war.
     if (typeof d.showZones === 'boolean') S.showZones = d.showZones;
+    if (typeof d.showLines === 'boolean') S.showLines = d.showLines;
+    if (typeof d.showGain === 'boolean') S.showGain = d.showGain;
     else if (typeof d.showStations === 'boolean' || typeof d.showRadii === 'boolean')
       S.showZones = !!(d.showStations || d.showRadii);
     // Stationsmarken sind Indizes. Hat sich die Stationsliste seit dem

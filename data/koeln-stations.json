@@ -23,9 +23,9 @@
         },
         {
             "k": "rail",
-            "n": "Köln Messe/Deutz (tief)",
-            "x": 6.97382,
-            "y": 50.9417,
+            "n": "Messe/Deutz",
+            "x": 6.97456,
+            "y": 50.94141,
             "u": 0
         },
         {
@@ -44,42 +44,42 @@
         },
         {
             "k": "kvb",
-            "n": "Mülheim Berliner Straße",
+            "n": "Mülheim Berliner Str.",
             "x": 7.01479,
             "y": 50.97478,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Arnulfstraße",
+            "n": "Arnulfstr.",
             "x": 6.93019,
             "y": 50.91829,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Moltkestraße",
+            "n": "Moltkestr.",
             "x": 6.93266,
             "y": 50.93603,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Universitätsstraße",
+            "n": "Universitätsstr.",
             "x": 6.92492,
             "y": 50.93666,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Godorf",
+            "n": "Godorf Bf",
             "x": 6.97833,
             "y": 50.8471,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Schönhauser Straße",
+            "n": "Schönhauser Str.",
             "x": 6.97189,
             "y": 50.91435,
             "u": 0
@@ -100,14 +100,14 @@
         },
         {
             "k": "kvb",
-            "n": "Sülzburgstraße",
+            "n": "Sülzburgstr.",
             "x": 6.92709,
             "y": 50.91533,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Weißhausstraße",
+            "n": "Weißhausstr.",
             "x": 6.93344,
             "y": 50.92142,
             "u": 0
@@ -127,29 +127,22 @@
             "u": 0
         },
         {
-            "k": "rail",
-            "n": "Köln Messe/Deutz",
-            "x": 6.97529,
-            "y": 50.94111,
-            "u": 0
-        },
-        {
             "k": "kvb",
-            "n": "Nußbaumerstraße",
+            "n": "Nußbaumerstr.",
             "x": 6.92368,
             "y": 50.95708,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Subbelrather Straße/Gürtel",
+            "n": "Subbelrather Str./Gürtel",
             "x": 6.92142,
             "y": 50.95483,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Gutenbergstraße",
+            "n": "Gutenbergstr.",
             "x": 6.92825,
             "y": 50.95039,
             "u": 0
@@ -191,14 +184,14 @@
         },
         {
             "k": "kvb",
-            "n": "Boltensternstraße",
+            "n": "Boltensternstr.",
             "x": 6.98084,
             "y": 50.96235,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Slabystraße",
+            "n": "Slabystr.",
             "x": 6.98792,
             "y": 50.96664,
             "u": 0
@@ -233,14 +226,14 @@
         },
         {
             "k": "kvb",
-            "n": "Suevenstraße",
+            "n": "Suevenstr.",
             "x": 6.97637,
             "y": 50.93279,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Bahnhof Deutz / LANXESS arena",
+            "n": "Bf Deutz/LANXESS arena",
             "x": 6.97846,
             "y": 50.93912,
             "u": 0
@@ -254,21 +247,21 @@
         },
         {
             "k": "kvb",
-            "n": "Grünstraße",
+            "n": "Grünstr.",
             "x": 7.00036,
             "y": 50.95575,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Keupstraße",
+            "n": "Keupstr.",
             "x": 7.00684,
             "y": 50.96623,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Von-Sparr-Straße",
+            "n": "Von-Sparr-Str.",
             "x": 7.0114,
             "y": 50.97046,
             "u": 0
@@ -289,14 +282,14 @@
         },
         {
             "k": "kvb",
-            "n": "Leuchterstraße",
+            "n": "Leuchterstr.",
             "x": 7.03763,
             "y": 50.99646,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Odenthaler Straße",
+            "n": "Odenthaler Str.",
             "x": 7.04233,
             "y": 51.00126,
             "u": 0
@@ -310,35 +303,35 @@
         },
         {
             "k": "kvb",
-            "n": "Amsterdamer Straße/Gürtel",
+            "n": "Amsterdamer Str./Gürtel",
             "x": 6.96912,
             "y": 50.97091,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Neusser Straße/Gürtel",
+            "n": "Neusser Str./Gürtel",
             "x": 6.95139,
             "y": 50.97233,
             "u": 0
         },
         {
-            "k": "kvb",
-            "n": "Geldernstraße/Parkgürtel",
-            "x": 6.9406,
-            "y": 50.96842,
+            "k": "both",
+            "n": "Geldernstr./Parkgürtel",
+            "x": 6.94097,
+            "y": 50.96846,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Körnerstraße",
+            "n": "Körnerstr.",
             "x": 6.92029,
             "y": 50.94833,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Piusstraße",
+            "n": "Piusstr.",
             "x": 6.92591,
             "y": 50.94598,
             "u": 0
@@ -366,7 +359,7 @@
         },
         {
             "k": "kvb",
-            "n": "Eupener Straße",
+            "n": "Eupener Str.",
             "x": 6.88955,
             "y": 50.93746,
             "u": 0
@@ -380,14 +373,14 @@
         },
         {
             "k": "kvb",
-            "n": "Wolffsohnstraße",
+            "n": "Wolffsohnstr.",
             "x": 6.88446,
             "y": 50.9652,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Weinsbergstraße/Gürtel",
+            "n": "Weinsbergstr./Gürtel",
             "x": 6.91276,
             "y": 50.94502,
             "u": 0
@@ -443,21 +436,21 @@
         },
         {
             "k": "kvb",
-            "n": "Gilgaustraße",
+            "n": "Ensen Gilgaustr.",
             "x": 7.03121,
             "y": 50.89963,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Westhoven, Kölner Straße",
+            "n": "Westhoven Kölner Str.",
             "x": 7.01498,
             "y": 50.90657,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Westhoven Berliner Straße",
+            "n": "Westhoven Berliner Str.",
             "x": 7.02548,
             "y": 50.90138,
             "u": 0
@@ -478,7 +471,7 @@
         },
         {
             "k": "kvb",
-            "n": "Eifelstraße",
+            "n": "Eifelstr.",
             "x": 6.94579,
             "y": 50.92663,
             "u": 0
@@ -499,21 +492,21 @@
         },
         {
             "k": "kvb",
-            "n": "Bahnstraße",
+            "n": "Bahnstr.",
             "x": 6.84499,
             "y": 50.93814,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Aachener Straße/Gürtel",
+            "n": "Aachener Str./Gürtel",
             "x": 6.90846,
             "y": 50.93702,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Dürener Straße/Gürtel",
+            "n": "Dürener Str./Gürtel",
             "x": 6.90863,
             "y": 50.92841,
             "u": 0
@@ -541,14 +534,14 @@
         },
         {
             "k": "kvb",
-            "n": "Florastraße",
+            "n": "Florastr.",
             "x": 6.95371,
             "y": 50.9645,
             "u": 1
         },
         {
             "k": "kvb",
-            "n": "Steinstraße",
+            "n": "Porz Steinstr.",
             "x": 7.05613,
             "y": 50.89179,
             "u": 0
@@ -562,7 +555,7 @@
         },
         {
             "k": "kvb",
-            "n": "Buchheim Herler Straße",
+            "n": "Buchheim Herler Str.",
             "x": 7.0251,
             "y": 50.95793,
             "u": 0
@@ -575,10 +568,10 @@
             "u": 0
         },
         {
-            "k": "kvb",
-            "n": "Bahnhof Mülheim",
-            "x": 7.01254,
-            "y": 50.95708,
+            "k": "both",
+            "n": "Bf Mülheim",
+            "x": 7.01304,
+            "y": 50.95762,
             "u": 0
         },
         {
@@ -590,7 +583,7 @@
         },
         {
             "k": "kvb",
-            "n": "Meerfeldstraße",
+            "n": "Meerfeldstr.",
             "x": 6.92079,
             "y": 50.99512,
             "u": 0
@@ -604,7 +597,7 @@
         },
         {
             "k": "kvb",
-            "n": "Wilhelm-Sollmann-Straße",
+            "n": "Wilhelm-Sollmann-Str.",
             "x": 6.94124,
             "y": 50.99188,
             "u": 0
@@ -618,51 +611,51 @@
         },
         {
             "k": "kvb",
-            "n": "Geestemünder Straße",
+            "n": "Geestemünder Str.",
             "x": 6.95533,
             "y": 51.00209,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Liebigstraße",
+            "n": "Liebigstr.",
             "x": 6.92506,
             "y": 50.95188,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Pohligstraße",
+            "n": "Pohligstr.",
             "x": 6.94146,
             "y": 50.91652,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Wichheimer Straße",
+            "n": "Wichheimer Str.",
             "x": 7.03123,
             "y": 50.96152,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Vischeringstraße",
+            "n": "Holweide Vischeringstr.",
             "x": 7.0384,
             "y": 50.96653,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Maria-Himmelfahrt-Straße",
+            "n": "Maria-Himmelfahrt-Str.",
             "x": 7.04452,
             "y": 50.96785,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Rhein Energie Stadion",
-            "x": 6.87771,
-            "y": 50.93697,
+            "n": "RheinEnergieStadion",
+            "x": 6.87468,
+            "y": 50.93761,
             "u": 0
         },
         {
@@ -674,7 +667,7 @@
         },
         {
             "k": "kvb",
-            "n": "Niehl Sebastianstraße",
+            "n": "Niehl Sebastianstr.",
             "x": 6.96176,
             "y": 50.98496,
             "u": 0
@@ -688,7 +681,7 @@
         },
         {
             "k": "kvb",
-            "n": "Nesselrodestraße",
+            "n": "Nesselrodestr.",
             "x": 6.96887,
             "y": 50.97707,
             "u": 0
@@ -716,7 +709,7 @@
         },
         {
             "k": "kvb",
-            "n": "Neufelder Straße/Krankenhaus Holweide",
+            "n": "Neufelder Str. (Krankenhaus Holweide)",
             "x": 7.05562,
             "y": 50.96958,
             "u": 0
@@ -736,10 +729,10 @@
             "u": 0
         },
         {
-            "k": "kvb",
+            "k": "both",
             "n": "Hansaring",
-            "x": 6.95141,
-            "y": 50.94869,
+            "x": 6.95202,
+            "y": 50.94889,
             "u": 1
         },
         {
@@ -772,7 +765,7 @@
         },
         {
             "k": "kvb",
-            "n": "Poststraße",
+            "n": "Poststr.",
             "x": 6.95004,
             "y": 50.93167,
             "u": 0
@@ -785,10 +778,10 @@
             "u": 0
         },
         {
-            "k": "kvb",
+            "k": "both",
             "n": "Weiden West",
-            "x": 6.81592,
-            "y": 50.94039,
+            "x": 6.81551,
+            "y": 50.94062,
             "u": 0
         },
         {
@@ -800,7 +793,7 @@
         },
         {
             "k": "kvb",
-            "n": "Fuldaer Straße",
+            "n": "Fuldaer Str.",
             "x": 7.0225,
             "y": 50.94158,
             "u": 0
@@ -828,84 +821,77 @@
         },
         {
             "k": "kvb",
-            "n": "Scheibenstraße",
+            "n": "Scheibenstr.",
             "x": 6.94636,
             "y": 50.98566,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Severinstraße",
+            "n": "Severinstr.",
             "x": 6.95704,
             "y": 50.92911,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Berrenrather Straße/Gürtel",
+            "n": "Berrenrather Str./Gürtel",
             "x": 6.9205,
             "y": 50.91454,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Euskirchener Straße",
+            "n": "Euskirchener Str.",
             "x": 6.91738,
             "y": 50.91686,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Mommsenstraße",
+            "n": "Mommsenstr.",
             "x": 6.91021,
             "y": 50.91909,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Zülpicher Straße/Gürtel",
+            "n": "Zülpicher Str./Gürtel",
             "x": 6.91521,
             "y": 50.92031,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Wüllnerstraße",
+            "n": "Wüllnerstr.",
             "x": 6.908,
             "y": 50.9312,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Gleueler Straße/Gürtel",
+            "n": "Gleueler Str./Gürtel",
             "x": 6.91189,
             "y": 50.92418,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Longerich Friedhof",
-            "x": 6.91131,
-            "y": 50.99561,
-            "u": 0
-        },
-        {
-            "k": "kvb",
-            "n": "Longericher Straße",
+            "n": "Longericher Str.",
             "x": 6.91494,
             "y": 50.99603,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Christophstraße/Mediapark",
+            "n": "Christophstr./Mediapark",
             "x": 6.94258,
             "y": 50.94485,
             "u": 1
         },
         {
             "k": "kvb",
-            "n": "Escher Straße",
+            "n": "Escher Str.",
             "x": 6.93375,
             "y": 50.96459,
             "u": 0
@@ -919,14 +905,14 @@
         },
         {
             "k": "kvb",
-            "n": "Lohsestraße",
+            "n": "Lohsestr.",
             "x": 6.95527,
             "y": 50.95813,
             "u": 1
         },
         {
             "k": "kvb",
-            "n": "Mollwitzstraße",
+            "n": "Mollwitzstr.",
             "x": 6.94882,
             "y": 50.9782,
             "u": 0
@@ -982,13 +968,6 @@
         },
         {
             "k": "kvb",
-            "n": "Marktstraße",
-            "x": 6.96228,
-            "y": 50.91193,
-            "u": 0
-        },
-        {
-            "k": "kvb",
             "n": "Rathaus",
             "x": 6.9596,
             "y": 50.93828,
@@ -1009,22 +988,22 @@
             "u": 0
         },
         {
-            "k": "kvb",
+            "k": "both",
             "n": "Chorweiler",
-            "x": 6.89802,
-            "y": 51.02065,
+            "x": 6.89803,
+            "y": 51.02091,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Herthastraße",
+            "n": "Herthastr.",
             "x": 6.94079,
             "y": 50.91297,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Raiffeisenstraße",
+            "n": "Raiffeisenstr.",
             "x": 6.98605,
             "y": 50.91994,
             "u": 0
@@ -1045,14 +1024,14 @@
         },
         {
             "k": "kvb",
-            "n": "Dellbrück Hauptstraße",
+            "n": "Dellbrück Hauptstr.",
             "x": 7.07483,
             "y": 50.97482,
             "u": 0
         },
         {
             "k": "rail",
-            "n": "Köln Airport-Businesspark",
+            "n": "Airport Businesspark",
             "x": 7.04472,
             "y": 50.91024,
             "u": 0
@@ -1094,35 +1073,28 @@
         },
         {
             "k": "kvb",
-            "n": "Poll Salmstraße",
+            "n": "Poll Salmstr.",
             "x": 6.99279,
             "y": 50.916,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Buchheim Frankfurter Straße",
+            "n": "Buchheim Frankfurter Str.",
             "x": 7.01453,
             "y": 50.9533,
             "u": 0
         },
         {
-            "k": "rail",
-            "n": "Köln Geldernstraße/Parkgürtel",
-            "x": 6.94135,
-            "y": 50.9685,
-            "u": 0
-        },
-        {
             "k": "kvb",
-            "n": "Autobahn (Stadtbahn)",
+            "n": "Autobahn",
             "x": 7.05381,
             "y": 50.92715,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Flehbachstraße",
+            "n": "Flehbachstr.",
             "x": 7.07318,
             "y": 50.94777,
             "u": 0
@@ -1136,16 +1108,9 @@
         },
         {
             "k": "kvb",
-            "n": "Porzer Straße",
+            "n": "Porzer Str.",
             "x": 7.07508,
             "y": 50.92164,
-            "u": 0
-        },
-        {
-            "k": "rail",
-            "n": "Köln-Mülheim",
-            "x": 7.01353,
-            "y": 50.95815,
             "u": 0
         },
         {
@@ -1164,28 +1129,28 @@
         },
         {
             "k": "kvb",
-            "n": "Iltisstraße",
+            "n": "Iltisstr.",
             "x": 6.91259,
             "y": 50.96478,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Margaretastraße",
+            "n": "Margaretastr.",
             "x": 6.90542,
             "y": 50.96856,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Rektor-Klein-Straße",
+            "n": "Rektor-Klein-Str.",
             "x": 6.90476,
             "y": 50.97374,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Leyendeckerstraße",
+            "n": "Leyendeckerstr.",
             "x": 6.90922,
             "y": 50.95468,
             "u": 0
@@ -1206,14 +1171,14 @@
         },
         {
             "k": "kvb",
-            "n": "Herforder Straße",
+            "n": "Herforder Str.",
             "x": 6.92531,
             "y": 50.99465,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Venloer Straße/Gürtel",
+            "n": "Venloer Str./Gürtel",
             "x": 6.91626,
             "y": 50.95025,
             "u": 0
@@ -1234,21 +1199,21 @@
         },
         {
             "k": "kvb",
-            "n": "Rodenkirchen Bahnhof",
+            "n": "Rodenkirchen Bf",
             "x": 6.99012,
             "y": 50.89081,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Siegstraße",
+            "n": "Siegstr.",
             "x": 6.99464,
             "y": 50.88334,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Sürth Bahnhof",
+            "n": "Sürth Bf",
             "x": 7.0037,
             "y": 50.86452,
             "u": 0
@@ -1283,16 +1248,9 @@
         },
         {
             "k": "rail",
-            "n": "Köln Hauptbahnhof",
+            "n": "Köln Hbf",
             "x": 6.95907,
             "y": 50.94278,
-            "u": 0
-        },
-        {
-            "k": "rail",
-            "n": "Köln Hansaring",
-            "x": 6.95264,
-            "y": 50.94908,
             "u": 0
         },
         {
@@ -1304,14 +1262,14 @@
         },
         {
             "k": "rail",
-            "n": "Köln-Longerich",
+            "n": "Longerich",
             "x": 6.90148,
             "y": 50.99824,
             "u": 0
         },
         {
             "k": "rail",
-            "n": "Köln-Stammheim",
+            "n": "Stammheim",
             "x": 7.00189,
             "y": 50.99004,
             "u": 0
@@ -1325,7 +1283,7 @@
         },
         {
             "k": "rail",
-            "n": "Köln Steinstraße",
+            "n": "Steinstr.",
             "x": 7.05762,
             "y": 50.89528,
             "u": 0
@@ -1339,7 +1297,7 @@
         },
         {
             "k": "rail",
-            "n": "Köln-Worringen",
+            "n": "Worringen",
             "x": 6.85208,
             "y": 51.05217,
             "u": 0
@@ -1353,14 +1311,14 @@
         },
         {
             "k": "rail",
-            "n": "Köln Frankfurter Straße",
+            "n": "Frankfurter Str.",
             "x": 7.05153,
             "y": 50.91542,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Dasselstraße/Bf Süd",
+            "n": "Dasselstr./Bf Süd",
             "x": 6.93573,
             "y": 50.92825,
             "u": 0
@@ -1381,30 +1339,23 @@
         },
         {
             "k": "rail",
-            "n": "Köln Trimbornstraße",
+            "n": "Trimbornstr.",
             "x": 6.99687,
             "y": 50.93588,
             "u": 0
         },
         {
             "k": "rail",
-            "n": "Köln-Blumenberg",
+            "n": "Blumenberg",
             "x": 6.88198,
             "y": 51.0374,
             "u": 0
         },
         {
             "k": "rail",
-            "n": "Köln-Chorweiler Nord",
+            "n": "Chorweiler Nord",
             "x": 6.89286,
             "y": 51.02803,
-            "u": 0
-        },
-        {
-            "k": "rail",
-            "n": "Köln-Chorweiler",
-            "x": 6.89803,
-            "y": 51.02117,
             "u": 0
         },
         {
@@ -1423,35 +1374,35 @@
         },
         {
             "k": "kvb",
-            "n": "Brahmsstraße",
+            "n": "Brahmsstr.",
             "x": 6.89841,
             "y": 50.926,
             "u": 0
         },
         {
             "k": "kvb",
-            "n": "Waldecker Straße",
+            "n": "Buchforst Waldecker Str.",
             "x": 7.00524,
             "y": 50.95108,
             "u": 0
         },
         {
             "k": "rail",
-            "n": "Porz (Rhein)",
+            "n": "Porz",
             "x": 7.06449,
             "y": 50.88327,
             "u": 0
         },
         {
             "k": "rail",
-            "n": "Köln-Ehrenfeld",
+            "n": "Ehrenfeld",
             "x": 6.91653,
             "y": 50.9515,
             "u": 0
         },
         {
             "k": "rail",
-            "n": "Köln-Müngersdorf/Technologiepark",
+            "n": "Müngersdorf Technologiepark",
             "x": 6.88843,
             "y": 50.94842,
             "u": 0
@@ -1465,13 +1416,6 @@
         },
         {
             "k": "rail",
-            "n": "Köln-Weiden West",
-            "x": 6.8151,
-            "y": 50.94085,
-            "u": 0
-        },
-        {
-            "k": "rail",
             "n": "Porz-Wahn",
             "x": 7.07923,
             "y": 50.85816,
@@ -1479,35 +1423,35 @@
         },
         {
             "k": "rail",
-            "n": "Köln Volkhovener Weg",
+            "n": "Volkhovener Weg",
             "x": 6.89321,
             "y": 51.01409,
             "u": 0
         },
         {
             "k": "rail",
-            "n": "Köln-Nippes",
+            "n": "Nippes",
             "x": 6.94178,
             "y": 50.95899,
             "u": 0
         },
         {
             "k": "rail",
-            "n": "Köln-Holweide",
+            "n": "Holweide",
             "x": 7.04111,
             "y": 50.97622,
             "u": 0
         },
         {
             "k": "rail",
-            "n": "Köln-Buchforst",
+            "n": "Buchforst",
             "x": 7.0043,
             "y": 50.95353,
             "u": 0
         },
         {
             "k": "rail",
-            "n": "Köln-Dellbrück",
+            "n": "Dellbrück",
             "x": 7.07024,
             "y": 50.98148,
             "u": 0
@@ -1525,6 +1469,13 @@
             "x": 6.87047,
             "y": 50.98055,
             "u": 0
+        },
+        {
+            "k": "rail",
+            "n": "Köln/Bonn Flughafen",
+            "x": 7.11928,
+            "y": 50.87892,
+            "u": 1
         }
     ]
 }

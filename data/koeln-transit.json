@@ -1,0 +1,1757 @@
+{
+    "quelle": "OpenStreetMap / Overpass (maps.mail.ru-Spiegel bzw. kumi.systems), Datenstand OSM 2026-07-24",
+    "geholt": "2026-10-12 (Linien/Routen erneut am 12.10.2026, overpass-api.de, OSM-Stand 2026-10-12)",
+    "lines_note": "Linien je Station: Haltepunkte (role stop/platform) der Routen route=tram|train mit ref, je Haltepunkt der naechsten Station gleicher Art (tram->kvb, train->rail) unter 200 m zugeordnet. Nur KVB-Stadtbahn, S-Bahn, RE/RB; Fernverkehr (ICE/IC/EC/FLX/NJ/ES) ausgelassen. Rhein Energie Stadion seit Runde 26 auf den Halt der Linie 1 an der Aachener Strasse verlegt. Koeln/Bonn Flughafen in Runde 26 ergaenzt. Runde 27: Namen nach KVB-Plan 2025/26, Umsteigepunkte mit einem Namen zusammengelegt, Marktstrasse und Longerich Friedhof entfernt.",
+    "lines": {
+        "Eifelplatz": [
+            "12"
+        ],
+        "Heumarkt": [
+            "1",
+            "5",
+            "7",
+            "9"
+        ],
+        "Deutzer Freiheit": [
+            "1",
+            "7",
+            "9"
+        ],
+        "Messe/Deutz": [
+            "S6",
+            "S11",
+            "S12",
+            "S19",
+            "RE1",
+            "RE5",
+            "RE6",
+            "RE7",
+            "RE8",
+            "RE9",
+            "RE12",
+            "RE22",
+            "RB24",
+            "RB25",
+            "RB26",
+            "RB27",
+            "RB38",
+            "RB48"
+        ],
+        "Kalker Friedhof": [
+            "1"
+        ],
+        "Merheim": [
+            "1"
+        ],
+        "Mülheim Berliner Str.": [
+            "4"
+        ],
+        "Arnulfstr.": [
+            "18"
+        ],
+        "Moltkestr.": [
+            "1",
+            "7"
+        ],
+        "Universitätsstr.": [
+            "1",
+            "7"
+        ],
+        "Godorf Bf": [
+            "16"
+        ],
+        "Schönhauser Str.": [
+            "16",
+            "17"
+        ],
+        "Ubierring": [
+            "15",
+            "16"
+        ],
+        "Sülzgürtel": [
+            "13",
+            "18"
+        ],
+        "Sülzburgstr.": [
+            "18"
+        ],
+        "Weißhausstr.": [
+            "18"
+        ],
+        "Eifelwall/Stadtarchiv": [
+            "18"
+        ],
+        "Universität": [
+            "9"
+        ],
+        "Nußbaumerstr.": [
+            "5",
+            "13"
+        ],
+        "Subbelrather Str./Gürtel": [
+            "5",
+            "13"
+        ],
+        "Gutenbergstr.": [
+            "5"
+        ],
+        "Melatengürtel": [
+            "13"
+        ],
+        "Melaten": [
+            "1",
+            "7"
+        ],
+        "Breslauer Platz/Hbf": [
+            "16",
+            "18"
+        ],
+        "Ebertplatz": [
+            "12",
+            "15",
+            "16",
+            "18"
+        ],
+        "Reichenspergerplatz": [
+            "16",
+            "18"
+        ],
+        "Boltensternstr.": [
+            "18"
+        ],
+        "Slabystr.": [
+            "13",
+            "18"
+        ],
+        "Zoo/Flora": [
+            "18"
+        ],
+        "Bocklemünd": [
+            "3",
+            "4"
+        ],
+        "Schaffrathsgasse": [
+            "3"
+        ],
+        "Hans-Böckler-Platz/Bf West": [
+            "3",
+            "4",
+            "5"
+        ],
+        "Suevenstr.": [
+            "3",
+            "4"
+        ],
+        "Bf Deutz/LANXESS arena": [
+            "3",
+            "4"
+        ],
+        "Stegerwaldsiedlung": [
+            "3",
+            "4"
+        ],
+        "Grünstr.": [
+            "4"
+        ],
+        "Keupstr.": [
+            "4"
+        ],
+        "Von-Sparr-Str.": [
+            "4"
+        ],
+        "Im Weidenbruch": [
+            "4"
+        ],
+        "Am Emberg": [
+            "4"
+        ],
+        "Leuchterstr.": [
+            "4"
+        ],
+        "Odenthaler Str.": [
+            "4"
+        ],
+        "Schlebusch": [
+            "4"
+        ],
+        "Amsterdamer Str./Gürtel": [
+            "13",
+            "16"
+        ],
+        "Neusser Str./Gürtel": [
+            "12",
+            "13",
+            "15"
+        ],
+        "Geldernstr./Parkgürtel": [
+            "S6",
+            "S11",
+            "13"
+        ],
+        "Körnerstr.": [
+            "3",
+            "4"
+        ],
+        "Piusstr.": [
+            "3",
+            "4"
+        ],
+        "Poller Kirchweg": [
+            "7"
+        ],
+        "Rudolfplatz": [
+            "1",
+            "7",
+            "12",
+            "15"
+        ],
+        "Maarweg": [
+            "1"
+        ],
+        "Eupener Str.": [
+            "1"
+        ],
+        "Clarenbachstift": [
+            "1"
+        ],
+        "Wolffsohnstr.": [
+            "3",
+            "4"
+        ],
+        "Weinsbergstr./Gürtel": [
+            "13"
+        ],
+        "Ollenhauerring": [
+            "3"
+        ],
+        "Bf Deutz/Messe": [
+            "1",
+            "9"
+        ],
+        "Deutz Technische Hochschule": [
+            "1",
+            "9"
+        ],
+        "Fordwerke Mitte": [
+            "12"
+        ],
+        "Fordwerke Süd": [
+            "12"
+        ],
+        "Rosenhügel": [
+            "7"
+        ],
+        "Porz Markt": [
+            "7"
+        ],
+        "Ensen Gilgaustr.": [
+            "7"
+        ],
+        "Westhoven Kölner Str.": [
+            "7"
+        ],
+        "Westhoven Berliner Str.": [
+            "7"
+        ],
+        "Dormagen Chempark": [
+            "S11"
+        ],
+        "Barbarossaplatz": [
+            "12",
+            "15",
+            "16",
+            "18"
+        ],
+        "Eifelstr.": [
+            "12",
+            "15",
+            "16"
+        ],
+        "Ulrepforte": [
+            "15",
+            "16"
+        ],
+        "Mohnweg": [
+            "1"
+        ],
+        "Bahnstr.": [
+            "1"
+        ],
+        "Aachener Str./Gürtel": [
+            "1",
+            "7",
+            "13"
+        ],
+        "Dürener Str./Gürtel": [
+            "7",
+            "13"
+        ],
+        "Königsforst": [
+            "9"
+        ],
+        "Röttgensweg": [
+            "9"
+        ],
+        "Rath/Heumar": [
+            "9"
+        ],
+        "Florastr.": [
+            "12",
+            "15"
+        ],
+        "Porz Steinstr.": [
+            "7"
+        ],
+        "Merkenich Mitte": [
+            "12"
+        ],
+        "Buchheim Herler Str.": [
+            "3",
+            "13",
+            "18"
+        ],
+        "Sülz Hermeskeiler Platz": [
+            "9"
+        ],
+        "Bf Mülheim": [
+            "S6",
+            "S11",
+            "13",
+            "18",
+            "RE1",
+            "RE5",
+            "RB48"
+        ],
+        "Heimersdorf": [
+            "15"
+        ],
+        "Meerfeldstr.": [
+            "15"
+        ],
+        "Altonaer Platz": [
+            "15"
+        ],
+        "Wilhelm-Sollmann-Str.": [
+            "12",
+            "15"
+        ],
+        "Niehl Nord": [
+            "12"
+        ],
+        "Geestemünder Str.": [
+            "12"
+        ],
+        "Liebigstr.": [
+            "5"
+        ],
+        "Pohligstr.": [
+            "12"
+        ],
+        "Wichheimer Str.": [
+            "3",
+            "13"
+        ],
+        "Holweide Vischeringstr.": [
+            "3",
+            "13"
+        ],
+        "Maria-Himmelfahrt-Str.": [
+            "3",
+            "13"
+        ],
+        "RheinEnergieStadion": [
+            "1"
+        ],
+        "Kinderkrankenhaus": [
+            "16"
+        ],
+        "Niehl Sebastianstr.": [
+            "16"
+        ],
+        "Ensen Kloster": [
+            "7"
+        ],
+        "Nesselrodestr.": [
+            "16"
+        ],
+        "Fordwerke Nord": [
+            "12"
+        ],
+        "Merkenich": [
+            "12"
+        ],
+        "Stüttgenhof": [
+            "7"
+        ],
+        "Neufelder Str. (Krankenhaus Holweide)": [
+            "3",
+            "13"
+        ],
+        "Dellbrück Mauspfad": [
+            "3",
+            "13"
+        ],
+        "Severinsbrücke": [
+            "7"
+        ],
+        "Hansaring": [
+            "S6",
+            "S11",
+            "S12",
+            "S19",
+            "12",
+            "15",
+            "RB25"
+        ],
+        "Westfriedhof": [
+            "3",
+            "4"
+        ],
+        "Zollstockgürtel": [
+            "12"
+        ],
+        "Gottesweg": [
+            "12"
+        ],
+        "Zülpicher Platz": [
+            "9",
+            "12",
+            "15"
+        ],
+        "Poststr.": [
+            "3",
+            "4",
+            "16",
+            "18"
+        ],
+        "Neumarkt": [
+            "1",
+            "3",
+            "4",
+            "7",
+            "9",
+            "16",
+            "18"
+        ],
+        "Weiden West": [
+            "S12",
+            "S19",
+            "1"
+        ],
+        "Kalk Post": [
+            "1",
+            "9"
+        ],
+        "Fuldaer Str.": [
+            "1"
+        ],
+        "Kalk Kapelle": [
+            "1",
+            "9"
+        ],
+        "Sportpark Höhenberg": [
+            "1"
+        ],
+        "Vingst": [
+            "9"
+        ],
+        "Scheibenstr.": [
+            "12",
+            "15"
+        ],
+        "Severinstr.": [
+            "3",
+            "4",
+            "17"
+        ],
+        "Berrenrather Str./Gürtel": [
+            "13"
+        ],
+        "Euskirchener Str.": [
+            "13"
+        ],
+        "Mommsenstr.": [
+            "9"
+        ],
+        "Zülpicher Str./Gürtel": [
+            "9",
+            "13"
+        ],
+        "Wüllnerstr.": [
+            "7",
+            "13"
+        ],
+        "Gleueler Str./Gürtel": [
+            "13"
+        ],
+        "Longericher Str.": [
+            "15"
+        ],
+        "Christophstr./Mediapark": [
+            "12",
+            "15"
+        ],
+        "Escher Str.": [
+            "13"
+        ],
+        "Koelnmesse": [
+            "3",
+            "4"
+        ],
+        "Lohsestr.": [
+            "12",
+            "15"
+        ],
+        "Mollwitzstr.": [
+            "12",
+            "15"
+        ],
+        "Chlodwigplatz": [
+            "15",
+            "16",
+            "17"
+        ],
+        "Zollstock Südfriedhof": [
+            "12"
+        ],
+        "Weiden Zentrum": [
+            "1"
+        ],
+        "Weiden Römergrab": [
+            "1"
+        ],
+        "Junkersdorf": [
+            "1"
+        ],
+        "Alter Militärring": [
+            "1"
+        ],
+        "Alter Flughafen Butzweilerhof": [
+            "5"
+        ],
+        "Rathaus": [
+            "5"
+        ],
+        "Appellhofplatz": [
+            "3",
+            "4",
+            "5",
+            "16",
+            "18"
+        ],
+        "Sparkasse Am Butzweilerhof": [
+            "5"
+        ],
+        "Chorweiler": [
+            "S6",
+            "S11",
+            "15"
+        ],
+        "Herthastr.": [
+            "12"
+        ],
+        "Raiffeisenstr.": [
+            "7"
+        ],
+        "Uniklinik Köln": [
+            "9"
+        ],
+        "IKEA Am Butzweilerhof": [
+            "5"
+        ],
+        "Dellbrück Hauptstr.": [
+            "3",
+            "13"
+        ],
+        "Airport Businesspark": [
+            "S12"
+        ],
+        "Thielenbruch": [
+            "3",
+            "13"
+        ],
+        "Mülheim Wiener Platz": [
+            "4",
+            "13",
+            "18"
+        ],
+        "Dom/Hbf": [
+            "5",
+            "16",
+            "18"
+        ],
+        "Klettenbergpark": [
+            "18"
+        ],
+        "Ostheim": [
+            "9"
+        ],
+        "Poll Salmstr.": [
+            "7"
+        ],
+        "Buchheim Frankfurter Str.": [
+            "3"
+        ],
+        "Autobahn": [
+            "9"
+        ],
+        "Flehbachstr.": [
+            "1"
+        ],
+        "Brück Mauspfad": [
+            "1"
+        ],
+        "Porzer Str.": [
+            "9"
+        ],
+        "Rochusplatz": [
+            "3",
+            "4"
+        ],
+        "Lenauplatz": [
+            "5"
+        ],
+        "Iltisstr.": [
+            "5"
+        ],
+        "Margaretastr.": [
+            "5"
+        ],
+        "Rektor-Klein-Str.": [
+            "5"
+        ],
+        "Leyendeckerstr.": [
+            "3",
+            "4"
+        ],
+        "Bayenthalgürtel": [
+            "16",
+            "17"
+        ],
+        "Heinrich-Lübke-Ufer": [
+            "16",
+            "17"
+        ],
+        "Herforder Str.": [
+            "15"
+        ],
+        "Venloer Str./Gürtel": [
+            "3",
+            "4",
+            "13"
+        ],
+        "Friesenplatz": [
+            "3",
+            "4",
+            "5",
+            "12",
+            "15"
+        ],
+        "Michaelshoven": [
+            "16",
+            "17"
+        ],
+        "Rodenkirchen Bf": [
+            "16",
+            "17"
+        ],
+        "Siegstr.": [
+            "16",
+            "17"
+        ],
+        "Sürth Bf": [
+            "16",
+            "17"
+        ],
+        "Haus Vorst": [
+            "7"
+        ],
+        "Zündorf": [
+            "7"
+        ],
+        "Drehbrücke": [
+            "7"
+        ],
+        "Marsdorf": [
+            "7"
+        ],
+        "Köln Hbf": [
+            "S6",
+            "S11",
+            "S12",
+            "S19",
+            "RE1",
+            "RE5",
+            "RE6",
+            "RE7",
+            "RE8",
+            "RE9",
+            "RE12",
+            "RE22",
+            "RB24",
+            "RB25",
+            "RB26",
+            "RB27",
+            "RB38",
+            "RB48"
+        ],
+        "Köln West": [
+            "RE22",
+            "RB24",
+            "RB26",
+            "RB48"
+        ],
+        "Longerich": [
+            "S6",
+            "S11"
+        ],
+        "Stammheim": [
+            "S6"
+        ],
+        "Baumschulenweg": [
+            "7"
+        ],
+        "Steinstr.": [
+            "S12"
+        ],
+        "Köln Süd": [
+            "RE5",
+            "RE12",
+            "RE22",
+            "RB24",
+            "RB26",
+            "RB48"
+        ],
+        "Worringen": [
+            "S6",
+            "S11"
+        ],
+        "Weyertal": [
+            "9"
+        ],
+        "Frankfurter Str.": [
+            "S19",
+            "RB25"
+        ],
+        "Dasselstr./Bf Süd": [
+            "9"
+        ],
+        "Mauritiuskirche": [
+            "9"
+        ],
+        "Steinweg": [
+            "9"
+        ],
+        "Trimbornstr.": [
+            "S12",
+            "S19",
+            "RB25"
+        ],
+        "Blumenberg": [
+            "S6",
+            "S11"
+        ],
+        "Chorweiler Nord": [
+            "S6",
+            "S11"
+        ],
+        "Bonner Wall": [
+            "17"
+        ],
+        "Kartäuserhof": [
+            "17"
+        ],
+        "Brahmsstr.": [
+            "7"
+        ],
+        "Buchforst Waldecker Str.": [
+            "3"
+        ],
+        "Porz": [
+            "S12",
+            "RE8",
+            "RE9"
+        ],
+        "Ehrenfeld": [
+            "S12",
+            "S19",
+            "RE1",
+            "RE8",
+            "RE9",
+            "RB27",
+            "RB38"
+        ],
+        "Müngersdorf Technologiepark": [
+            "S12",
+            "S19"
+        ],
+        "Lövenich": [
+            "S12",
+            "S19"
+        ],
+        "Porz-Wahn": [
+            "S12",
+            "S19"
+        ],
+        "Volkhovener Weg": [
+            "S6",
+            "S11"
+        ],
+        "Nippes": [
+            "S6",
+            "S11"
+        ],
+        "Holweide": [
+            "S11"
+        ],
+        "Buchforst": [
+            "S6",
+            "S11"
+        ],
+        "Dellbrück": [
+            "S11"
+        ],
+        "Akazienweg": [
+            "3",
+            "4"
+        ],
+        "Görlinger-Zentrum": [
+            "3"
+        ],
+        "Köln/Bonn Flughafen": [
+            "S19",
+            "RE6",
+            "RB27"
+        ]
+    },
+    "airports_note": "Flughaefen mit Linienverkehr im weiten Umkreis, aeroway=aerodrome mit IATA-Code, Mittelpunkt (out center). Militaer- und Sportplaetze ausgelassen.",
+    "airports": [
+        {
+            "iata": "CGN",
+            "n": "Flughafen Köln/Bonn",
+            "x": 7.14205,
+            "y": 50.86787
+        },
+        {
+            "iata": "DUS",
+            "n": "Flughafen Düsseldorf",
+            "x": 6.76838,
+            "y": 51.2871
+        },
+        {
+            "iata": "DTM",
+            "n": "Flughafen Dortmund",
+            "x": 7.61313,
+            "y": 51.51702
+        },
+        {
+            "iata": "NRN",
+            "n": "Flughafen Weeze",
+            "x": 6.14308,
+            "y": 51.60306
+        },
+        {
+            "iata": "MST",
+            "n": "Maastricht Aachen Airport",
+            "x": 5.77007,
+            "y": 50.91203
+        },
+        {
+            "iata": "PAD",
+            "n": "Flughafen Paderborn/Lippstadt",
+            "x": 8.61748,
+            "y": 51.61447
+        },
+        {
+            "iata": "FRA",
+            "n": "Flughafen Frankfurt",
+            "x": 8.54479,
+            "y": 50.0244
+        },
+        {
+            "iata": "HHN",
+            "n": "Flughafen Hahn",
+            "x": 7.26195,
+            "y": 49.94467
+        }
+    ],
+    "highspeed_note": "railway=rail + highspeed=yes + maxspeed>=200, je Strecke ein Gleis, Douglas-Peucker 5 m, auf den Raum 6.6-7.3 / 50.76-51.16 beschnitten. 2600 Koeln-Aachen (ab Muengersdorf), 2650 Koeln-Duisburg (ab Stammheim), 2690 SFS Koeln-Rhein/Main (ab Steinstrasse).",
+    "highspeed": [
+        {
+            "ref": "2600",
+            "g": [
+                [
+                    6.51951,
+                    50.841
+                ],
+                [
+                    6.52237,
+                    50.84231
+                ],
+                [
+                    6.52623,
+                    50.84384
+                ],
+                [
+                    6.56304,
+                    50.85814
+                ],
+                [
+                    6.63807,
+                    50.88711
+                ],
+                [
+                    6.65283,
+                    50.89273
+                ],
+                [
+                    6.70407,
+                    50.91262
+                ],
+                [
+                    6.71528,
+                    50.91706
+                ],
+                [
+                    6.72444,
+                    50.92035
+                ],
+                [
+                    6.73262,
+                    50.92341
+                ],
+                [
+                    6.76118,
+                    50.9329
+                ],
+                [
+                    6.7657,
+                    50.93415
+                ],
+                [
+                    6.78196,
+                    50.93731
+                ],
+                [
+                    6.78438,
+                    50.93766
+                ],
+                [
+                    6.79737,
+                    50.93912
+                ],
+                [
+                    6.8756,
+                    50.94727
+                ],
+                [
+                    6.88432,
+                    50.94805
+                ],
+                [
+                    6.8884,
+                    50.94854
+                ],
+                [
+                    6.89749,
+                    50.94948
+                ]
+            ]
+        },
+        {
+            "ref": "2690",
+            "g": [
+                [
+                    7.05869,
+                    50.89274
+                ],
+                [
+                    7.07432,
+                    50.86618
+                ],
+                [
+                    7.07569,
+                    50.86381
+                ],
+                [
+                    7.07793,
+                    50.85928
+                ],
+                [
+                    7.07955,
+                    50.8565
+                ],
+                [
+                    7.0808,
+                    50.85468
+                ],
+                [
+                    7.0818,
+                    50.85349
+                ],
+                [
+                    7.0832,
+                    50.85211
+                ],
+                [
+                    7.08709,
+                    50.84903
+                ],
+                [
+                    7.11337,
+                    50.82762
+                ],
+                [
+                    7.11537,
+                    50.82623
+                ],
+                [
+                    7.11805,
+                    50.82472
+                ],
+                [
+                    7.12095,
+                    50.82342
+                ],
+                [
+                    7.12401,
+                    50.82233
+                ],
+                [
+                    7.18888,
+                    50.80172
+                ],
+                [
+                    7.19225,
+                    50.80046
+                ],
+                [
+                    7.1946,
+                    50.79928
+                ],
+                [
+                    7.19876,
+                    50.79653
+                ],
+                [
+                    7.21172,
+                    50.78751
+                ],
+                [
+                    7.21399,
+                    50.78569
+                ],
+                [
+                    7.21575,
+                    50.78393
+                ],
+                [
+                    7.21714,
+                    50.78223
+                ],
+                [
+                    7.21827,
+                    50.78044
+                ],
+                [
+                    7.21935,
+                    50.77809
+                ],
+                [
+                    7.22127,
+                    50.7711
+                ],
+                [
+                    7.22298,
+                    50.76676
+                ],
+                [
+                    7.22528,
+                    50.76237
+                ],
+                [
+                    7.22772,
+                    50.75854
+                ]
+            ]
+        },
+        {
+            "ref": "2650",
+            "g": [
+                [
+                    6.88059,
+                    51.16062
+                ],
+                [
+                    6.88528,
+                    51.15616
+                ],
+                [
+                    6.93726,
+                    51.10406
+                ],
+                [
+                    6.93915,
+                    51.10158
+                ],
+                [
+                    6.95872,
+                    51.06945
+                ],
+                [
+                    6.95993,
+                    51.06772
+                ],
+                [
+                    6.96094,
+                    51.06654
+                ],
+                [
+                    6.96209,
+                    51.06546
+                ],
+                [
+                    6.96332,
+                    51.0645
+                ],
+                [
+                    6.96552,
+                    51.06313
+                ],
+                [
+                    6.98057,
+                    51.05552
+                ],
+                [
+                    6.98167,
+                    51.05487
+                ],
+                [
+                    6.98342,
+                    51.05362
+                ],
+                [
+                    6.98481,
+                    51.05236
+                ],
+                [
+                    6.98574,
+                    51.05132
+                ],
+                [
+                    6.98705,
+                    51.04929
+                ],
+                [
+                    6.98775,
+                    51.04755
+                ],
+                [
+                    6.99116,
+                    51.03315
+                ],
+                [
+                    6.9968,
+                    51.01126
+                ],
+                [
+                    7.002,
+                    50.99026
+                ],
+                [
+                    7.00245,
+                    50.9879
+                ]
+            ]
+        }
+    ],
+    "routes_note": "Linienverlaeufe zum Zeichnen: Stationsfolge je OSM-Route (Haltepunkt -> naechste Station gleicher Art unter 200 m, aufeinanderfolgende Doppelte entfernt); Gegenrichtung und Teilstrecken ohne neue Kante weggelassen. Schematisch Station zu Station, nicht gleisgenau.",
+    "routes": {
+        "1": [
+            [
+                "Weiden West",
+                "Weiden Römergrab",
+                "Weiden Zentrum",
+                "Bahnstr.",
+                "Mohnweg",
+                "Junkersdorf",
+                "RheinEnergieStadion",
+                "Alter Militärring",
+                "Eupener Str.",
+                "Clarenbachstift",
+                "Maarweg",
+                "Aachener Str./Gürtel",
+                "Melaten",
+                "Universitätsstr.",
+                "Moltkestr.",
+                "Rudolfplatz",
+                "Neumarkt",
+                "Heumarkt",
+                "Deutzer Freiheit",
+                "Bf Deutz/Messe",
+                "Deutz Technische Hochschule",
+                "Kalk Post",
+                "Kalk Kapelle",
+                "Fuldaer Str.",
+                "Sportpark Höhenberg",
+                "Kalker Friedhof",
+                "Merheim",
+                "Flehbachstr.",
+                "Brück Mauspfad"
+            ]
+        ],
+        "3": [
+            [
+                "Görlinger-Zentrum",
+                "Ollenhauerring",
+                "Schaffrathsgasse",
+                "Bocklemünd",
+                "Westfriedhof",
+                "Wolffsohnstr.",
+                "Akazienweg",
+                "Rochusplatz",
+                "Leyendeckerstr.",
+                "Venloer Str./Gürtel",
+                "Körnerstr.",
+                "Piusstr.",
+                "Hans-Böckler-Platz/Bf West",
+                "Friesenplatz",
+                "Appellhofplatz",
+                "Neumarkt",
+                "Poststr.",
+                "Severinstr.",
+                "Suevenstr.",
+                "Bf Deutz/LANXESS arena",
+                "Koelnmesse",
+                "Stegerwaldsiedlung",
+                "Buchforst Waldecker Str.",
+                "Buchheim Frankfurter Str.",
+                "Buchheim Herler Str.",
+                "Wichheimer Str.",
+                "Holweide Vischeringstr.",
+                "Maria-Himmelfahrt-Str.",
+                "Neufelder Str. (Krankenhaus Holweide)",
+                "Dellbrück Mauspfad",
+                "Dellbrück Hauptstr.",
+                "Thielenbruch"
+            ]
+        ],
+        "4": [
+            [
+                "Bocklemünd",
+                "Westfriedhof",
+                "Wolffsohnstr.",
+                "Akazienweg",
+                "Rochusplatz",
+                "Leyendeckerstr.",
+                "Venloer Str./Gürtel",
+                "Körnerstr.",
+                "Piusstr.",
+                "Hans-Böckler-Platz/Bf West",
+                "Friesenplatz",
+                "Appellhofplatz",
+                "Neumarkt",
+                "Poststr.",
+                "Severinstr.",
+                "Suevenstr.",
+                "Bf Deutz/LANXESS arena",
+                "Koelnmesse",
+                "Stegerwaldsiedlung",
+                "Grünstr.",
+                "Mülheim Wiener Platz",
+                "Keupstr.",
+                "Von-Sparr-Str.",
+                "Mülheim Berliner Str.",
+                "Im Weidenbruch",
+                "Am Emberg",
+                "Leuchterstr.",
+                "Odenthaler Str.",
+                "Schlebusch"
+            ]
+        ],
+        "5": [
+            [
+                "Heumarkt",
+                "Rathaus",
+                "Dom/Hbf",
+                "Appellhofplatz",
+                "Friesenplatz",
+                "Hans-Böckler-Platz/Bf West",
+                "Gutenbergstr.",
+                "Liebigstr.",
+                "Subbelrather Str./Gürtel",
+                "Nußbaumerstr.",
+                "Lenauplatz",
+                "Iltisstr.",
+                "Margaretastr.",
+                "Rektor-Klein-Str.",
+                "Alter Flughafen Butzweilerhof",
+                "IKEA Am Butzweilerhof",
+                "Sparkasse Am Butzweilerhof"
+            ]
+        ],
+        "7": [
+            [
+                "Haus Vorst",
+                "Marsdorf",
+                "Stüttgenhof",
+                "Brahmsstr.",
+                "Dürener Str./Gürtel",
+                "Wüllnerstr.",
+                "Aachener Str./Gürtel",
+                "Melaten",
+                "Universitätsstr.",
+                "Moltkestr.",
+                "Rudolfplatz",
+                "Neumarkt",
+                "Heumarkt",
+                "Deutzer Freiheit",
+                "Severinsbrücke",
+                "Drehbrücke",
+                "Poller Kirchweg",
+                "Raiffeisenstr.",
+                "Poll Salmstr.",
+                "Baumschulenweg",
+                "Westhoven Kölner Str.",
+                "Westhoven Berliner Str.",
+                "Ensen Gilgaustr.",
+                "Ensen Kloster",
+                "Porz Steinstr.",
+                "Porz Markt",
+                "Rosenhügel",
+                "Zündorf"
+            ]
+        ],
+        "9": [
+            [
+                "Königsforst",
+                "Röttgensweg",
+                "Rath/Heumar",
+                "Porzer Str.",
+                "Steinweg",
+                "Autobahn",
+                "Ostheim",
+                "Vingst",
+                "Kalk Kapelle",
+                "Kalk Post",
+                "Deutz Technische Hochschule",
+                "Bf Deutz/Messe",
+                "Deutzer Freiheit",
+                "Heumarkt",
+                "Neumarkt",
+                "Mauritiuskirche",
+                "Zülpicher Platz",
+                "Dasselstr./Bf Süd",
+                "Universität",
+                "Weyertal",
+                "Uniklinik Köln",
+                "Zülpicher Str./Gürtel",
+                "Mommsenstr.",
+                "Sülz Hermeskeiler Platz"
+            ]
+        ],
+        "12": [
+            [
+                "Merkenich",
+                "Merkenich Mitte",
+                "Fordwerke Nord",
+                "Fordwerke Mitte",
+                "Fordwerke Süd",
+                "Geestemünder Str.",
+                "Niehl Nord",
+                "Wilhelm-Sollmann-Str.",
+                "Scheibenstr.",
+                "Mollwitzstr.",
+                "Neusser Str./Gürtel",
+                "Florastr.",
+                "Lohsestr.",
+                "Ebertplatz",
+                "Hansaring",
+                "Christophstr./Mediapark",
+                "Friesenplatz",
+                "Rudolfplatz",
+                "Zülpicher Platz",
+                "Barbarossaplatz",
+                "Eifelstr.",
+                "Eifelplatz",
+                "Pohligstr.",
+                "Herthastr.",
+                "Gottesweg",
+                "Zollstockgürtel",
+                "Zollstock Südfriedhof"
+            ]
+        ],
+        "13": [
+            [
+                "Thielenbruch",
+                "Dellbrück Hauptstr.",
+                "Dellbrück Mauspfad",
+                "Neufelder Str. (Krankenhaus Holweide)",
+                "Maria-Himmelfahrt-Str.",
+                "Holweide Vischeringstr.",
+                "Wichheimer Str.",
+                "Buchheim Herler Str.",
+                "Bf Mülheim",
+                "Mülheim Wiener Platz",
+                "Slabystr.",
+                "Amsterdamer Str./Gürtel",
+                "Neusser Str./Gürtel",
+                "Geldernstr./Parkgürtel",
+                "Escher Str.",
+                "Nußbaumerstr.",
+                "Subbelrather Str./Gürtel",
+                "Venloer Str./Gürtel",
+                "Weinsbergstr./Gürtel",
+                "Melatengürtel",
+                "Aachener Str./Gürtel",
+                "Wüllnerstr.",
+                "Dürener Str./Gürtel",
+                "Gleueler Str./Gürtel",
+                "Zülpicher Str./Gürtel",
+                "Euskirchener Str.",
+                "Berrenrather Str./Gürtel",
+                "Sülzgürtel"
+            ]
+        ],
+        "15": [
+            [
+                "Ubierring",
+                "Chlodwigplatz",
+                "Ulrepforte",
+                "Eifelstr.",
+                "Barbarossaplatz",
+                "Zülpicher Platz",
+                "Rudolfplatz",
+                "Friesenplatz",
+                "Christophstr./Mediapark",
+                "Hansaring",
+                "Ebertplatz",
+                "Lohsestr.",
+                "Florastr.",
+                "Neusser Str./Gürtel",
+                "Mollwitzstr.",
+                "Scheibenstr.",
+                "Wilhelm-Sollmann-Str.",
+                "Altonaer Platz",
+                "Herforder Str.",
+                "Meerfeldstr.",
+                "Longericher Str.",
+                "Heimersdorf",
+                "Chorweiler"
+            ],
+            [
+                "Chorweiler",
+                "Heimersdorf",
+                "Longericher Str.",
+                "Meerfeldstr.",
+                "Herforder Str.",
+                "Altonaer Platz",
+                "Wilhelm-Sollmann-Str.",
+                "Scheibenstr.",
+                "Mollwitzstr.",
+                "Neusser Str./Gürtel",
+                "Florastr.",
+                "Lohsestr.",
+                "Ebertplatz",
+                "Hansaring",
+                "Christophstr./Mediapark",
+                "Rudolfplatz",
+                "Zülpicher Platz",
+                "Barbarossaplatz",
+                "Eifelstr.",
+                "Ulrepforte",
+                "Chlodwigplatz",
+                "Ubierring"
+            ],
+            [
+                "Longericher Str.",
+                "Meerfeldstr.",
+                "Herforder Str.",
+                "Altonaer Platz",
+                "Wilhelm-Sollmann-Str.",
+                "Scheibenstr.",
+                "Mollwitzstr.",
+                "Neusser Str./Gürtel",
+                "Florastr.",
+                "Lohsestr.",
+                "Ebertplatz",
+                "Hansaring",
+                "Christophstr./Mediapark",
+                "Rudolfplatz",
+                "Zülpicher Platz",
+                "Barbarossaplatz",
+                "Eifelstr.",
+                "Ulrepforte",
+                "Chlodwigplatz",
+                "Ubierring"
+            ],
+            [
+                "Ubierring",
+                "Chlodwigplatz",
+                "Ulrepforte",
+                "Eifelstr.",
+                "Barbarossaplatz",
+                "Zülpicher Platz",
+                "Rudolfplatz",
+                "Friesenplatz",
+                "Christophstr./Mediapark",
+                "Hansaring",
+                "Ebertplatz",
+                "Lohsestr.",
+                "Florastr.",
+                "Neusser Str./Gürtel",
+                "Mollwitzstr.",
+                "Scheibenstr.",
+                "Wilhelm-Sollmann-Str.",
+                "Altonaer Platz",
+                "Herforder Str.",
+                "Longericher Str."
+            ]
+        ],
+        "16": [
+            [
+                "Godorf Bf",
+                "Sürth Bf",
+                "Michaelshoven",
+                "Siegstr.",
+                "Rodenkirchen Bf",
+                "Heinrich-Lübke-Ufer",
+                "Bayenthalgürtel",
+                "Schönhauser Str.",
+                "Ubierring",
+                "Chlodwigplatz",
+                "Ulrepforte",
+                "Eifelstr.",
+                "Barbarossaplatz",
+                "Poststr.",
+                "Neumarkt",
+                "Appellhofplatz",
+                "Dom/Hbf",
+                "Breslauer Platz/Hbf",
+                "Ebertplatz",
+                "Reichenspergerplatz",
+                "Kinderkrankenhaus",
+                "Amsterdamer Str./Gürtel",
+                "Nesselrodestr.",
+                "Niehl Sebastianstr."
+            ]
+        ],
+        "17": [
+            [
+                "Severinstr.",
+                "Kartäuserhof",
+                "Chlodwigplatz",
+                "Bonner Wall",
+                "Schönhauser Str.",
+                "Bayenthalgürtel",
+                "Heinrich-Lübke-Ufer",
+                "Rodenkirchen Bf",
+                "Siegstr.",
+                "Michaelshoven",
+                "Sürth Bf"
+            ]
+        ],
+        "18": [
+            [
+                "Buchheim Herler Str.",
+                "Bf Mülheim",
+                "Mülheim Wiener Platz",
+                "Slabystr.",
+                "Boltensternstr.",
+                "Zoo/Flora",
+                "Reichenspergerplatz",
+                "Ebertplatz",
+                "Breslauer Platz/Hbf",
+                "Dom/Hbf",
+                "Appellhofplatz",
+                "Neumarkt",
+                "Poststr.",
+                "Barbarossaplatz",
+                "Eifelwall/Stadtarchiv",
+                "Weißhausstr.",
+                "Arnulfstr.",
+                "Sülzburgstr.",
+                "Sülzgürtel",
+                "Klettenbergpark"
+            ]
+        ],
+        "RB24": [
+            [
+                "Messe/Deutz",
+                "Köln Hbf",
+                "Köln West",
+                "Köln Süd"
+            ]
+        ],
+        "RE22": [
+            [
+                "Messe/Deutz",
+                "Köln Hbf",
+                "Köln West",
+                "Köln Süd"
+            ]
+        ],
+        "RB25": [
+            [
+                "Hansaring",
+                "Köln Hbf",
+                "Messe/Deutz",
+                "Trimbornstr.",
+                "Frankfurter Str."
+            ]
+        ],
+        "RB26": [
+            [
+                "Messe/Deutz",
+                "Köln Hbf",
+                "Köln West",
+                "Köln Süd"
+            ]
+        ],
+        "RB27": [
+            [
+                "Ehrenfeld",
+                "Köln Hbf",
+                "Messe/Deutz",
+                "Köln/Bonn Flughafen"
+            ]
+        ],
+        "RB48": [
+            [
+                "Köln Süd",
+                "Köln West",
+                "Köln Hbf",
+                "Messe/Deutz",
+                "Bf Mülheim"
+            ]
+        ],
+        "RE1": [
+            [
+                "Bf Mülheim",
+                "Messe/Deutz",
+                "Köln Hbf",
+                "Ehrenfeld"
+            ]
+        ],
+        "RE12": [
+            [
+                "Köln Süd",
+                "Köln Hbf",
+                "Messe/Deutz"
+            ]
+        ],
+        "RE5": [
+            [
+                "Köln Süd",
+                "Köln Hbf",
+                "Messe/Deutz",
+                "Bf Mülheim"
+            ]
+        ],
+        "RE7": [
+            [
+                "Messe/Deutz",
+                "Köln Hbf"
+            ]
+        ],
+        "RE8": [
+            [
+                "Ehrenfeld",
+                "Köln Hbf",
+                "Messe/Deutz",
+                "Porz"
+            ]
+        ],
+        "RE9": [
+            [
+                "Porz",
+                "Messe/Deutz",
+                "Köln Hbf",
+                "Ehrenfeld"
+            ]
+        ],
+        "S11": [
+            [
+                "Dormagen Chempark",
+                "Worringen",
+                "Blumenberg",
+                "Chorweiler Nord",
+                "Chorweiler",
+                "Volkhovener Weg",
+                "Longerich",
+                "Geldernstr./Parkgürtel",
+                "Nippes",
+                "Hansaring",
+                "Köln Hbf",
+                "Messe/Deutz",
+                "Buchforst",
+                "Bf Mülheim",
+                "Holweide",
+                "Dellbrück"
+            ]
+        ],
+        "S12": [
+            [
+                "Weiden West",
+                "Lövenich",
+                "Müngersdorf Technologiepark",
+                "Ehrenfeld",
+                "Hansaring",
+                "Köln Hbf",
+                "Messe/Deutz",
+                "Trimbornstr.",
+                "Airport Businesspark",
+                "Steinstr.",
+                "Porz",
+                "Porz-Wahn"
+            ]
+        ],
+        "S6": [
+            [
+                "Worringen",
+                "Blumenberg",
+                "Chorweiler Nord",
+                "Chorweiler",
+                "Volkhovener Weg",
+                "Longerich",
+                "Geldernstr./Parkgürtel",
+                "Nippes",
+                "Hansaring",
+                "Köln Hbf",
+                "Messe/Deutz",
+                "Buchforst",
+                "Bf Mülheim",
+                "Stammheim"
+            ]
+        ],
+        "RB38": [
+            [
+                "Messe/Deutz",
+                "Köln Hbf",
+                "Ehrenfeld"
+            ]
+        ],
+        "S19": [
+            [
+                "Weiden West",
+                "Lövenich",
+                "Müngersdorf Technologiepark",
+                "Ehrenfeld",
+                "Hansaring",
+                "Köln Hbf",
+                "Messe/Deutz",
+                "Trimbornstr.",
+                "Frankfurter Str.",
+                "Köln/Bonn Flughafen",
+                "Porz-Wahn"
+            ]
+        ],
+        "RE6": [
+            [
+                "Köln/Bonn Flughafen",
+                "Messe/Deutz",
+                "Köln Hbf"
+            ]
+        ]
+    }
+}

@@ -29,6 +29,13 @@ const stationData = fs.existsSync(STATION_FILE)
   ? JSON.parse(fs.readFileSync(STATION_FILE, 'utf8'))
   : null;
 
+/* Linien je Station, Flughäfen und Schnellfahrstrecken (Runde 25) — siehe
+   OVERPASS.md, Abschnitt 10. Fehlt die Datei, baut alles wie vorher. */
+const TRANSIT_FILE = path.join(__dirname, 'data/koeln-transit.json');
+const transit = fs.existsSync(TRANSIT_FILE)
+  ? JSON.parse(fs.readFileSync(TRANSIT_FILE, 'utf8'))
+  : null;
+
 // ---------- POI-Kuration ----------
 const DROP_NAME = [
   /honorar/i,                         // Honorarkonsulate (Jet-Lag-Regel)
@@ -210,7 +217,10 @@ const MANGAL = [
 ];
 
 const pois = dedupe(curate(ring ? ring.pois : raw.pois))
-  .concat(MANGAL.map(([n, y, x]) => ({ c: 'mangal', n, x, y })));
+  .concat(MANGAL.map(([n, y, x]) => ({ c: 'mangal', n, x, y })))
+  /* Flughäfen als gewöhnliche Orte-Kategorie: dann tragen Matching und
+     Measuring, Verstecker-Seite und Orte-Liste ohne eigenen Code. */
+  .concat(transit ? transit.airports.map((a) => ({ c: 'airport', n: a.n, x: a.x, y: a.y })) : []);
 
 // Rheinseite je POI; Stadtteil nur für POIs innerhalb Kölns
 for (const p of pois) {
@@ -235,6 +245,25 @@ pois.forEach((p) => (counts[p.c] = (counts[p.c] || 0) + 1));
 let stations = [];
 if (stationData) {
   stations = stationData.stations.map((s) => ({ k: s.k, n: s.n, x: s.x, y: s.y, u: s.u || 0 }));
+}
+
+/* Linien (`l`) je Station. Stationen derselben Art unter 150 m Abstand sind
+   ein Bahnhof mit zwei Einträgen (Messe/Deutz und Messe/Deutz tief; Bf
+   Deutz/Messe und Bahnhof Deutz/LANXESS arena) — sie teilen ihre Linien.
+   KVB und Bahn werden bewusst nicht vermischt: Linie 16 hält an Dom/Hbf,
+   nicht am Bahnsteig von Köln Hbf. Ohne Linie bleibt `l` leer; die App
+   schließt solche Stationen mit der Linienfrage nie aus. */
+if (transit && stations.length) {
+  const kmX = 111.32 * Math.cos((51 * Math.PI) / 180), kmY = 110.57;
+  const own = stations.map((s) => new Set(transit.lines[s.n] || []));
+  stations.forEach((s, i) => {
+    const all = new Set(own[i]);
+    stations.forEach((t, j) => {
+      if (i === j || t.k !== s.k) return;
+      if (Math.hypot((t.x - s.x) * kmX, (t.y - s.y) * kmY) < 0.15) own[j].forEach((l) => all.add(l));
+    });
+    s.l = [...all].sort((a, b) => a.localeCompare(b, 'de', { numeric: true }));
+  });
 }
 
 /** Rechteckiges Spielgebiet: Bounding-Box der Stationen + Puffer (Bene:
@@ -273,6 +302,25 @@ const bundle = {
   },
   pois,
 };
+if (transit) bundle.highspeed = transit.highspeed.map((h) => ({ ref: h.ref, g: h.g }));
+/* Linienverläufe zum Zeichnen (Runde 26): Stationsnamen → Indizes. Ein Name,
+   den es nicht mehr gibt, trennt die Folge statt sie still zu überspringen. */
+if (transit && transit.routes) {
+  const idx = new Map(stations.map((s, i) => [s.n, i]));
+  bundle.routes = {};
+  for (const [line, seqs] of Object.entries(transit.routes)) {
+    const out = [];
+    for (const seq of seqs) {
+      let cur = [];
+      for (const n of seq) {
+        if (idx.has(n)) cur.push(idx.get(n));
+        else { if (cur.length > 1) out.push(cur); cur = []; }
+      }
+      if (cur.length > 1) out.push(cur);
+    }
+    if (out.length) bundle.routes[line] = out;
+  }
+}
 
 /* Eingerückt und mit CRLF schreiben — genau so, wie die Datei auf der Platte
    liegt. Vorher schrieb der Build kompakt, die Datei war aber eingerückt: ein
