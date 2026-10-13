@@ -173,13 +173,16 @@ button{cursor:pointer;background:none;border:none}
   box-shadow:var(--shadow);pointer-events:none;text-transform:uppercase;
   max-width:calc(100% - 32px);text-align:center;
 }
-.legend{
+/* Zoomstufe, nur bei eingeschalteter Kartenabdeckung (Runde 36) */
+.zoomtag{
   position:absolute;left:10px;bottom:10px;z-index:600;background:var(--surface);
-  border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:11px;
-  box-shadow:var(--shadow);display:grid;gap:4px;
+  border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;
+  box-shadow:var(--shadow);color:var(--ink-2);pointer-events:none;
+  font-variant-numeric:tabular-nums;
 }
-.legend div{display:flex;align-items:center;gap:6px;color:var(--ink-2)}
-.legend i{width:12px;height:12px;border-radius:3px;flex:none}
+.zoomtag b{color:var(--ink);font-weight:700}
+.zoomtag.match b{color:#ea580c}
+.zoomtag[hidden]{display:none}
 
 /* ===== Panel ===== */
 #panel{
@@ -482,10 +485,7 @@ a.btn{display:flex;align-items:center;justify-content:center;text-decoration:non
   <div id="mapwrap">
     <div id="map"></div>
     <div class="maphint" id="mapHint" hidden></div>
-    <div class="legend">
-      <div><i style="background:var(--excl-map);opacity:.5"></i>ausgeschlossen</div>
-      <div><i style="background:var(--accent)"></i>Seeker-Position</div>
-    </div>
+    <div class="zoomtag" id="zoomTag" hidden></div>
   </div>
 
   <section id="panel">
@@ -1997,6 +1997,7 @@ function initMap() {
   // deshalb muss der Layer nach jedem Zoom neu gezeichnet werden. Leaflet
   // skaliert nur den Radius mit, nicht die Linienbreite.
   S.map.on('zoomend', () => {
+    updateZoomTag();
     if (S.showZones || S.poiCat) drawArea();
     if (S.showDiv.d2 || S.showDiv.d3) drawDivisions();
     if (S.showLines) drawLines();
@@ -2013,6 +2014,21 @@ function initMap() {
   drawLines();
   drawCoverage();
   fitArea();
+  updateZoomTag();
+}
+
+/** Zoomstufe unten links — nur bei eingeschalteter Kartenabdeckung (Runde 36).
+    Orange, wenn sie der geprüften Stufe entspricht: dann füllt Wischen die
+    markierten Stellen. */
+function updateZoomTag() {
+  const el = document.getElementById('zoomTag');
+  if (!el) return;
+  const on = !!(S.showCover && S.map && !S.noMap);
+  el.hidden = !on;
+  if (!on) return;
+  const z = Math.round(S.map.getZoom());
+  el.classList.toggle('match', z === S.coverZ);
+  el.innerHTML = 'Zoom <b>' + z + '</b>' + (z === S.coverZ ? '' : ' · Abdeckung für ' + S.coverZ);
 }
 
 /* ---------- Kartenabdeckung (Runde 34) ----------
@@ -2049,6 +2065,7 @@ async function coverageStats() {
 
 async function drawCoverage() {
   if (S.noMap || !S.layers.cover) return;
+  updateZoomTag();
   if (!S.showCover || !('caches' in self)) { S.layers.cover.clearLayers(); return; }
   const st = await coverageStats();
   S.layers.cover.clearLayers();

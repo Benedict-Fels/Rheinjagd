@@ -1480,6 +1480,7 @@ function initMap() {
   // deshalb muss der Layer nach jedem Zoom neu gezeichnet werden. Leaflet
   // skaliert nur den Radius mit, nicht die Linienbreite.
   S.map.on('zoomend', () => {
+    updateZoomTag();
     if (S.showZones || S.poiCat) drawArea();
     if (S.showDiv.d2 || S.showDiv.d3) drawDivisions();
     if (S.showLines) drawLines();
@@ -1496,6 +1497,21 @@ function initMap() {
   drawLines();
   drawCoverage();
   fitArea();
+  updateZoomTag();
+}
+
+/** Zoomstufe unten links — nur bei eingeschalteter Kartenabdeckung (Runde 36).
+    Orange, wenn sie der geprüften Stufe entspricht: dann füllt Wischen die
+    markierten Stellen. */
+function updateZoomTag() {
+  const el = document.getElementById('zoomTag');
+  if (!el) return;
+  const on = !!(S.showCover && S.map && !S.noMap);
+  el.hidden = !on;
+  if (!on) return;
+  const z = Math.round(S.map.getZoom());
+  el.classList.toggle('match', z === S.coverZ);
+  el.innerHTML = 'Zoom <b>' + z + '</b>' + (z === S.coverZ ? '' : ' · Abdeckung für ' + S.coverZ);
 }
 
 /* ---------- Kartenabdeckung (Runde 34) ----------
@@ -1532,6 +1548,7 @@ async function coverageStats() {
 
 async function drawCoverage() {
   if (S.noMap || !S.layers.cover) return;
+  updateZoomTag();
   if (!S.showCover || !('caches' in self)) { S.layers.cover.clearLayers(); return; }
   const st = await coverageStats();
   S.layers.cover.clearLayers();
