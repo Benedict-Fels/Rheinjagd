@@ -13,15 +13,14 @@
 const fs = require('fs');
 const path = require('path');
 
-const raw = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/koeln-raw.json'), 'utf8'));
+/* Rheinlinie (Rheinseiten-Frage, Messen „Rhein"). Bis Runde 32 stand sie
+   in koeln-raw.json zusammen mit einer alten Ortsliste und einem Mittelpunkt,
+   die beide nicht mehr gebraucht wurden. */
+const raw = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/koeln-rhein.json'), 'utf8'));
 
-/* Optionale Erweiterung: POIs aus einem Ring um den Startpunkt (25 km).
-   Nötig, damit "nächster Ort"-Fragen auch am Stadtrand stimmen — wer in
-   Worringen sitzt, hat womöglich ein Leverkusener Museum als nächstes. */
-const RING_FILE = path.join(__dirname, 'data/koeln-ring25-pois.json');
-const ring = fs.existsSync(RING_FILE)
-  ? JSON.parse(fs.readFileSync(RING_FILE, 'utf8'))
-  : null;
+/* Orte aus einem Ring um den Hbf (25 km) — POI-Daten müssen weiter reichen
+   als das Spielgebiet, sonst stimmt „nächster Ort" am Rand nicht. */
+const ring = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/koeln-ring25-pois.json'), 'utf8'));
 
 /* Stationen + Spielgebietsgrenze (aus dem KVB-Netzplan abgeleitet). */
 const STATION_FILE = path.join(__dirname, 'data/koeln-stations.json');
@@ -151,9 +150,8 @@ function centroid(g) {
 /* Verwaltungsgrenzen kommen seit Runde 20 aus `data/koeln-boundaries-raw.json`
    (frischer Overpass-Export in voller Auflösung) und werden in Bogenform
    abgelegt: jede Grenzlinie steht genau einmal, beide Nachbarn verweisen
-   darauf. `raw.admin` aus koeln-raw.json wird dafür **nicht mehr gelesen** —
-   es ist die alte, pro Fläche kopierte und ausgedünnte Fassung, in der die
-   Kopien bis zu 245 m auseinandergelaufen waren. */
+   darauf. (Die alte, pro Fläche kopierte Fassung, in der die Kopien bis zu
+   245 m auseinandergelaufen waren, ist mit Runde 32 samt koeln-raw.json weg.) */
 const { build: buildBoundaries, expandRing } = require('./build-boundaries.js');
 const B = buildBoundaries(path.join(__dirname, 'data/koeln-boundaries-raw.json'));
 if (B.problems.length) {
@@ -175,9 +173,8 @@ for (const f of [...stadtteile, ...bezirke]) {
   f.side = sideOfLine(centroid(f.geometry), raw.rhein);
 }
 
-// Ring-Daten bevorzugen, sonst die Stadtdaten
 /* Eigene Kategorie "mangal" (Runde 17, Wunsch von Bene): die Mangal-Döner-
-   Läden als Matching-Frage. Sie stehen nicht in koeln-raw.json — Overpass ist
+   Läden als Matching-Frage. Sie stehen in keiner Rohdatei — Overpass ist
    aus der Bauumgebung nicht erreichbar, die Liste wurde deshalb einmalig über
    den Browser geholt und hier festgeschrieben.
 
@@ -216,18 +213,14 @@ const MANGAL = [
   ['Mangal Döner Sankt Augustin',     50.77716, 7.18775],
 ];
 
-const pois = dedupe(curate(ring ? ring.pois : raw.pois))
+const pois = dedupe(curate(ring.pois))
   .concat(MANGAL.map(([n, y, x]) => ({ c: 'mangal', n, x, y })))
   /* Flughäfen als gewöhnliche Orte-Kategorie: dann tragen Matching und
      Measuring, Verstecker-Seite und Orte-Liste ohne eigenen Code. */
   .concat(transit ? transit.airports.map((a) => ({ c: 'airport', n: a.n, x: a.x, y: a.y })) : []);
 
-// Rheinseite je POI; Stadtteil nur für POIs innerhalb Kölns
-for (const p of pois) {
-  const st = stadtteile.find((f) => pointInGeom([p.x, p.y], f.geometry));
-  p.st = st ? st.name : null;
-  p.side = sideOfLine([p.x, p.y], raw.rhein);
-}
+/* Bis Runde 31 bekam jeder Ort hier noch Stadtteil (`st`) und Rheinseite
+   (`side`) — die App liest beides nie, sie rechnet es bei Bedarf selbst. */
 
 const counts = {};
 pois.forEach((p) => (counts[p.c] = (counts[p.c] || 0) + 1));
@@ -244,7 +237,7 @@ pois.forEach((p) => (counts[p.c] = (counts[p.c] || 0) + 1));
 // nicht mehr gelesen.
 let stations = [];
 if (stationData) {
-  stations = stationData.stations.map((s) => ({ k: s.k, n: s.n, x: s.x, y: s.y, u: s.u || 0 }));
+  stations = stationData.stations.map((s) => ({ k: s.k, n: s.n, x: s.x, y: s.y }));
 }
 
 /* Linien (`l`) je Station. Stationen derselben Art unter 150 m Abstand sind
@@ -283,8 +276,9 @@ function stationBox(stations, bufferKm) {
 const playBox = stations.length ? stationBox(stations, 1.5) : null;
 
 const bundle = {
-  city: 'Köln',
-  center: raw.center,
+  // Mitte des Spielgebiets — Startansicht der Karte und Breitengrad für die
+  // ebene Näherung in stationPoiField(). Vorher ein fester Punkt aus koeln-raw.
+  center: playBox ? [+((playBox.minX + playBox.maxX) / 2).toFixed(5), +((playBox.minY + playBox.maxY) / 2).toFixed(5)] : [6.9583, 50.9420],
   rhein: raw.rhein,
   city_boundary: city.geometry,
   stations,
@@ -297,8 +291,8 @@ const bundle = {
     arcs: B.arcs,
     // Nutzer-Entscheidung: Rheinseite wird als "1st Division" geführt
     d1: { label: 'Rheinseite', kind: 'side' },
-    d2: { label: 'Stadtbezirk', kind: 'poly', features: bezirke.map((f) => ({ name: f.name, side: f.side, rings: f.rings })) },
-    d3: { label: 'Stadtteil', kind: 'poly', features: stadtteile.map((f) => ({ name: f.name, side: f.side, rings: f.rings })) },
+    d2: { label: 'Stadtbezirk', kind: 'poly', features: bezirke.map((f) => ({ name: f.name, rings: f.rings })) },
+    d3: { label: 'Stadtteil', kind: 'poly', features: stadtteile.map((f) => ({ name: f.name, rings: f.rings })) },
   },
   pois,
 };
@@ -319,6 +313,34 @@ if (transit && transit.routes) {
       if (cur.length > 1) out.push(cur);
     }
     if (out.length) bundle.routes[line] = out;
+  }
+  /* Abkürzungen entfernen (Runde 29): Manche OSM-Varianten lassen einen Halt
+     aus (Linie 15: Rudolfplatz → Christophstr./Mediapark ohne Friesenplatz).
+     Gibt es dieselbe Verbindung derselben Linie auch über genau einen
+     Zwischenhalt, fliegt die direkte Kante raus. */
+  for (const [line, seqs] of Object.entries(bundle.routes)) {
+    const adj = new Map();
+    const add = (a, b) => { (adj.get(a) || adj.set(a, new Set()).get(a)).add(b); };
+    for (const q of seqs) for (let k = 0; k < q.length - 1; k++) { add(q[k], q[k + 1]); add(q[k + 1], q[k]); }
+    const kmX = 111.32 * Math.cos((51 * Math.PI) / 180), kmY = 110.57;
+    const dd = (i, j) => Math.hypot((stations[i].x - stations[j].x) * kmX, (stations[i].y - stations[j].y) * kmY);
+    // Nur wenn der Zwischenhalt wirklich auf dem Weg liegt (Umweg < 20 %) —
+    // sonst wären bei einem Dreieck alle drei Kanten „Abkürzungen".
+    const skip = (a, b) => [...(adj.get(a) || [])].some((x) => x !== b &&
+      (adj.get(x) || new Set()).has(b) && dd(a, x) + dd(x, b) < 1.2 * dd(a, b));
+    const out = [];
+    for (const q of seqs) {
+      let cur = [q[0]];
+      for (let k = 1; k < q.length; k++) {
+        if (skip(q[k - 1], q[k])) {
+          console.log('Abkürzung entfernt: Linie', line, stations[q[k - 1]].n, '→', stations[q[k]].n);
+          if (cur.length > 1) out.push(cur);
+          cur = [q[k]];
+        } else cur.push(q[k]);
+      }
+      if (cur.length > 1) out.push(cur);
+    }
+    bundle.routes[line] = out;
   }
 }
 

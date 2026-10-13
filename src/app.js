@@ -3,8 +3,6 @@
    ============================================================ */
 'use strict';
 
-const MILE_KM = 1.609344;
-/** Fläche einer Rasterzelle in km² — hängt vom gewählten Radius ab. */
 
 /* ---------- Kategorien ----------
    `g` ist das Geschlecht des Kategoriennamens (m/f/n). Die Fragetexte werden
@@ -39,26 +37,27 @@ const DECL = {
 };
 const decl = (c) => DECL[CATS[c].g] || DECL.n;
 
-const RADAR_MI = [0.25, 0.5, 1, 3, 5, 10];
-const THERMO_MI = [0.5, 3, 10];
+/* Alles in Kilometern (Runde 31/32, Bene): die Meilenstufen des Spiels
+   gerundet. Radar ¼ ½ 1 3 5 10 mi → 0,5 · 1 · 1,5 · 5 · 8 · 16 km,
+   Thermometer ½ 3 10 mi → 1 · 5 · 16 km, Tentakel 1 mi → 1,5 km. */
+const RADAR_KM = [0.5, 1, 1.5, 5, 8, 16];
+const THERMO_KM = [1, 5, 16];
+const TENTACLE_KM = 1.5;
+const qKm = (q) => q.km;
+const fmtKm = (km) => String(km).replace('.', ',') + ' km';
 
-/* Verstecker-Seite: ab wann ist eine Antwort zu knapp, um sie der App zu
-   glauben? Beim Radar hängt nur die eigene Position dran (GPS ±10 m, von Hand
-   gesetzt exakt), beim Messen zusätzlich zwei OSM-Punkte, die selbst um ~20 m
-   danebenliegen können. Darunter wird gemeldet statt behauptet — dieselbe
-   Haltung wie bei den Grenzfällen der Stationen. */
-const HIDE_NEAR_RADAR_KM = 0.025;
-const HIDE_NEAR_MEASURE_KM = 0.05;
+/* „Knapp" (Runde 31, Bene): auf beiden Seiten dieselben 10 m — die
+   Verstecker-Seite meldet ab hier „entscheidet vor Ort", die Jäger-Seite
+   lässt eine Station stehen, wenn die Grenze näher als 10 m an ihr vorbeiläuft
+   (STATION_R_KM). Vorher 25/50 m beim Verstecker und 5 m beim Jäger. */
+const HIDE_NEAR_RADAR_KM = 0.010;
+const HIDE_NEAR_MEASURE_KM = 0.010;
 
 /* Spielgebiet: festes Rechteck aus der Stationsverteilung (`play_box` in
    koeln.json, siehe build-data.js) — kein Radius-Kreis und kein Polygon aus
    dem KVB-Netzplan mehr. Standard-Startpunkt ist die Domtreppe (Runde 15,
    vorher Köln Hbf) — dort startet Benes Gruppe. */
 const HOME_DEFAULT = { name: 'Domtreppe', x: 6.95827, y: 50.94196 };
-/* Startpunkt bis Runde 14. Ein gespeicherter Spielstand, der noch exakt hier
-   steht, hat ihn nie von Hand geändert — der wird beim Laden mitgezogen.
-   Ein selbst gesetzter Startpunkt bleibt unangetastet. */
-const HOME_LEGACY = { x: 6.95907, y: 50.94278 };
 
 /* Versteckzone: Der Hider muss sich innerhalb dieses Abstands zu einer
    zugelassenen Station aufhalten (Jet-Lag-Standard: 500 m). */
@@ -79,7 +78,8 @@ const S = {
   sf: null,              // vorgerechnete Felder je Station (Rheinseite, Bezirk, …)
   killed: null,          // Uint8Array: durch eine Antwort ausgeschlossen
   manual: new Set(),     // von Hand ausgeschlossene Stationen (Index)
-  endgame: new Set(),    // Stationen mit ausgelöstem Endgame — bleiben möglich
+  endgame: new Set(),    // Stationen mit ausgelöstem Endgame — nur sie bleiben (Runde 29)
+  doubt: new Set(),      // „unwahrscheinlich" (z. B. nach Fotofragen) — nur Markierung, Fragen wirken normal
   force: new Set(),      // von Hand möglich gelassen, trotz Antwort
   history: [], stamp: 0,
   seeker: null,          // [lon, lat]
@@ -212,7 +212,7 @@ function distToLineKm(x, y, line) {
    OSM-Punktes über die Antwort — und eine falsch ausgeschlossene Station kostet
    das Spiel. Eine zu Unrecht gestrichene Station lässt sich auf der Karte über
    „trotzdem möglich lassen" zurückholen. */
-const STATION_R_KM = 0.005;   // 5 m
+const STATION_R_KM = 0.010;   // 10 m — gleich wie HIDE_NEAR_* (Runde 31)
 
 /** Diagonale des Spielgebiets-Rechtecks in km — als Längenmaßstab für
     Kartenelemente, die "über das Spielgebiet hinaus" reichen sollen. */
@@ -223,6 +223,113 @@ function boxDiagKm() {
   const w = (box.maxX - box.minX) * 111.32 * Math.cos(toRad(midY));
   const h = (box.maxY - box.minY) * 110.57;
   return Math.hypot(w, h);
+}
+
+/* ---------- Endgame: genaue Position statt Station (Runde 29/30) ----------
+   Im Endgame steht das Versteck still und die Antworten beziehen sich auf
+   seine genaue Position — wie im echten Spiel: jede Antwort schneidet die Zone
+   entlang ihrer wahren Grenze (Radarkreis, Thermometer-Mittelsenkrechte,
+   Voronoi-Kante, Stadtteilgrenze …).
+   Gerechnet wird auf einem 10-m-Gitter: an jedem Gitterpunkt der *vorzeichen-
+   behaftete Abstand* zur Grenze jeder Endgame-Frage (positiv = Antwort hält).
+   Gezeichnet wird mit Marching Squares, also mit zwischen den Gitterpunkten
+   interpolierten Kanten — die Grenze erscheint als glatte Linie, nicht als
+   Treppe aus Rasterzellen (Runde 30). */
+const EG_CELL_M = 10;
+
+/** Vorzeichenbehafteter Abstand (km) des Punkts p zur Grenze der Frage:
+    > 0 die Antwort hält, < 0 sie ist widerlegt. */
+function signedOk(q, ans, p) {
+  switch (q.type) {
+    case 'thermo': {
+      const da = distKm(p[0], p[1], q.from[0], q.from[1]);
+      const db = distKm(p[0], p[1], q.to[0], q.to[1]);
+      const m = bisectorDistKm(p[0], p[1], q.from[0], q.from[1], q.to[0], q.to[1]);
+      return ((ans === 'hotter') === (db < da)) ? m : -m;
+    }
+    case 'tentacle': {
+      const d = distKm(p[0], p[1], q.seeker[0], q.seeker[1]);
+      const r = qKm(q), inR = d <= r;
+      if (ans === 'none') return inR ? -(r - d) : d - r;
+      if (!inR) return -(d - r);
+      const f = stationPoiField(q.cat), pois = f.pois;
+      const t = pois[+ans], n = nearestAt(q.cat, p);
+      if (!t || !n.poi) return Infinity;
+      if (n.k === +ans) {
+        // zweitnächster Ort bestimmt die Kante
+        let m = Infinity;
+        for (let k = 0; k < pois.length; k++) {
+          if (k === +ans) continue;
+          m = Math.min(m, bisectorDistKm(p[0], p[1], t.x, t.y, pois[k].x, pois[k].y));
+        }
+        return Math.min(r - d, m);
+      }
+      return -bisectorDistKm(p[0], p[1], n.poi.x, n.poi.y, t.x, t.y);
+    }
+    // Linie und Namenslänge hängen an der Station, nicht am Punkt in der Zone.
+    case 'match-line': case 'match-namelen': return Infinity;
+    default: {
+      const ha = hideAnswer(q, p);
+      if (!ha) return Infinity;
+      const m = isFinite(ha.margin) ? ha.margin : EG_CELL_M / 2000;
+      return ha.ans === ans ? m : -m;
+    }
+  }
+}
+
+/** Hält die Antwort, wenn das Versteck am Punkt p stünde? */
+function pointOk(q, ans, p) { return signedOk(q, ans, p) > 0; }
+
+/** Gitter über die Endgame-Zone mit dem Minimum aller Endgame-Abstände. */
+function egCells() {
+  const key = S.stamp + ':' + S.history.length + ':' + S.hideRadiusM + ':' + [...S.endgame].join(',');
+  if (S._eg && S._egKey === key) return S._eg;
+  const dLat = EG_CELL_M / 1000 / 110.574;
+  const dLon = dLat * 110.574 / (111.32 * Math.cos(toRad(50.94)));
+  const r = S.hideRadiusM / 1000;
+  const zones = liveStations();
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const s of zones) {
+    const ry = r / 110.574, rx = r / (111.32 * Math.cos(toRad(s.y)));
+    minX = Math.min(minX, s.x - rx); maxX = Math.max(maxX, s.x + rx);
+    minY = Math.min(minY, s.y - ry); maxY = Math.max(maxY, s.y + ry);
+  }
+  const x0 = minX - 2 * dLon, y0 = minY - 2 * dLat;
+  const nx = Math.ceil((maxX - minX) / dLon) + 5, ny = Math.ceil((maxY - minY) / dLat) + 5;
+  const qs = S.history.filter((h) => h.eg);
+  // Gitterpunkte in (und knapp um) die Zone
+  const gkey = x0 + ':' + y0 + ':' + nx + ':' + ny;
+  const idx = [], inZone = new Uint8Array(nx * ny);
+  for (let j = 0; j < ny; j++) {
+    for (let i = 0; i < nx; i++) {
+      const p = [x0 + i * dLon, y0 + j * dLat];
+      if (!zones.some((s) => distKm(p[0], p[1], s.x, s.y) <= r + 3 * EG_CELL_M / 1000)) continue;
+      idx.push(j * nx + i);
+      if (zones.some((s) => distKm(p[0], p[1], s.x, s.y) <= r)) inZone[j * nx + i] = 1;
+    }
+  }
+  /* Jede Frage einmal je Gitter rechnen und am Verlaufseintrag merken — eine
+     neue Antwort rechnet dann nur sich selbst, nicht alle davor noch einmal. */
+  const F = new Float64Array(nx * ny).fill(Infinity);
+  for (const h of qs) {
+    const hk = gkey + '|' + JSON.stringify([h.q, h.ans]);
+    if (!h._eg || h._eg.key !== hk) {
+      const arr = new Float32Array(nx * ny).fill(Infinity);
+      for (const k of idx) {
+        const p = [x0 + (k % nx) * dLon, y0 + Math.floor(k / nx) * dLat];
+        arr[k] = signedOk(h.q, h.ans, p);
+      }
+      h._eg = { key: hk, arr };
+    }
+    const a = h._eg.arr;
+    for (const k of idx) if (a[k] < F[k]) F[k] = a[k];
+  }
+  const pts = [];
+  for (const k of idx) if (inZone[k] && F[k] > 0) pts.push([x0 + (k % nx) * dLon, y0 + Math.floor(k / nx) * dLat]);
+  const cellKm2 = (EG_CELL_M / 1000) ** 2;
+  S._eg = { x0, y0, nx, ny, dLat, dLon, F, inZone, pts, any: qs.length > 0, area: pts.length * cellKm2 };
+  S._egKey = key;
+  return S._eg;
 }
 
 /* ---------- Linien, Stationsnamen, Schnellfahrstrecken (Runde 25) ---------- */
@@ -308,8 +415,7 @@ function withChoice(q, v) {
 
 /**
  * Stationen übernehmen und die Felder vorrechnen, die jede Fragenauswertung
- * braucht. Läuft einmal beim Start — bei 245 Stationen ist das ein Wimpernschlag
- * (das alte Raster hatte dafür 9.000 Zellen mit denselben Tests zu füllen).
+ * braucht. Läuft einmal beim Start — bei gut 200 Stationen ist das ein Wimpernschlag.
  */
 function buildStations(data) {
   const list = (data.stations || []).map((s, i) => ({ ...s, i }));
@@ -381,9 +487,16 @@ function kindLabel(s) {
 function stationLive(s) {
   if (!kindOk(s)) return false;
   if (S.manual.has(s.i)) return false;
-  if (S.endgame.has(s.i) || S.force.has(s.i)) return true;
+  /* Endgame (Runde 29): Sobald es ausgelöst ist, zählt nur noch diese Zone —
+     alle anderen Stationen sind ausgegraut, egal was die Antworten sagen. */
+  if (egActive()) return S.endgame.has(s.i);
+  if (S.force.has(s.i)) return true;
   return !S.killed[s.i];
 }
+
+/** Läuft das Endgame? Dann bewegt sich das Versteck nicht mehr, und Fragen
+    beziehen sich auf dessen genaue Position statt auf die Station. */
+function egActive() { return S.endgame.size > 0; }
 
 /** Bleibt die Station unabhängig von den Antworten möglich? */
 function stationPinned(i) { return S.endgame.has(i) || S.force.has(i); }
@@ -585,7 +698,15 @@ function expandDivisions(data) {
 
 function divIndexAt(level, pt) {
   const feats = S.data.divisions[level].features;
-  for (let k = 0; k < feats.length; k++) if (pointInGeom(pt[0], pt[1], feats[k].geometry)) return k;
+  /* Bounding-Boxen vorab (Runde 30): im Endgame läuft das für tausende
+     Gitterpunkte, ohne Vorprüfung gegen jede Fläche komplett. */
+  const boxes = (S._divBoxes = S._divBoxes || {})[level] ||
+    (S._divBoxes[level] = feats.map((f) => bboxOf(f.geometry)));
+  for (let k = 0; k < feats.length; k++) {
+    const b = boxes[k];
+    if (pt[0] < b[0] || pt[0] > b[2] || pt[1] < b[1] || pt[1] > b[3]) continue;
+    if (pointInGeom(pt[0], pt[1], feats[k].geometry)) return k;
+  }
   return -1;
 }
 
@@ -608,12 +729,67 @@ function divisionRings(level) {
   return out;
 }
 
+/**
+ * Endgame (Runde 30): für Punkte in der Zone reicht ein Ausschnitt der
+ * Grenzen. Für tausende Gitterpunkte gegen alle 4.500 Segmente zu rechnen
+ * dauerte Sekunden je Frage. Behalten wird jedes Segment, das näher an der
+ * Zonenmitte liegt als (nächste Grenze zur Mitte + 2 × Radius) — damit ist
+ * für jeden Punkt der Zone die nächste Grenze sicher dabei.
+ */
+function egLocalRings(level, pt) {
+  if (!egActive()) return null;
+  const z = liveStations()[0];
+  if (!z) return null;
+  const r = S.hideRadiusM / 1000;
+  if (distKm(pt[0], pt[1], z.x, z.y) > r + 0.05) return null;
+  const key = level + ':' + z.i + ':' + S.hideRadiusM;
+  S._egRings = S._egRings || {};
+  if (S._egRings[key]) return S._egRings[key];
+  let d0 = Infinity;
+  for (const ring of divisionRings(level)) d0 = Math.min(d0, distToLineKm(z.x, z.y, ring));
+  const R = d0 + 2 * r + 0.1;
+  /* Segmente eben in km um die Zonenmitte (kx, ky) — auf wenigen Kilometern
+     weicht das unter einem Meter von der Kugel ab, spart aber die
+     Winkelfunktionen je Segment und Gitterpunkt. */
+  const kx = 111.32 * Math.cos(toRad(z.y)), ky = 110.574;
+  const segs = [];
+  for (const ring of divisionRings(level)) {
+    for (let k = 0; k < ring.length - 1; k++) {
+      const a = ring[k], b = ring[k + 1];
+      if (distToLineKm(z.x, z.y, [a, b]) > R) continue;
+      segs.push([(a[0] - z.x) * kx, (a[1] - z.y) * ky, (b[0] - z.x) * kx, (b[1] - z.y) * ky]);
+    }
+  }
+  const out = { segs, z, kx, ky };
+  S._egRings[key] = out;
+  return out;
+}
+
 function distToBorderKm(level, pt) {
+  const local = egLocalRings(level, pt);
+  /* Punkte außerhalb der Endgame-Zone (vor allem die Jäger-Position) kommen
+     in einer Auswertung tausendfach mit demselben Wert — merken. */
+  const mk = local ? null : level + '|' + pt[0] + '|' + pt[1];
+  const memo = S._bdMemo || (S._bdMemo = new Map());
+  if (mk && memo.has(mk)) return memo.get(mk);
+  if (local) {
+    const px = (pt[0] - local.z.x) * local.kx, py = (pt[1] - local.z.y) * local.ky;
+    let b2 = Infinity;
+    for (const [ax, ay, bx, by] of local.segs) {
+      const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1e-12;
+      let t = ((px - ax) * dx + (py - ay) * dy) / L2;
+      t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const ex = ax + t * dx - px, ey = ay + t * dy - py, d2 = ex * ex + ey * ey;
+      if (d2 < b2) b2 = d2;
+    }
+    return Math.sqrt(b2);
+  }
   let best = Infinity;
   for (const ring of divisionRings(level)) {
     const d = distToLineKm(pt[0], pt[1], ring);
     if (d < best) best = d;
   }
+  if (mk) { if (memo.size > 5000) memo.clear(); memo.set(mk, best); }
   return best;
 }
 
@@ -770,7 +946,7 @@ function stationDecider(q, ans) {
       return { pos, at: (i) => ({ hit: d[i] < my, margin: Math.abs(d[i] - my) }) };
     }
     case 'radar': {
-      const r = q.mi * MILE_KM, sx = q.seeker[0], sy = q.seeker[1];
+      const r = qKm(q), sx = q.seeker[0], sy = q.seeker[1];
       return { pos, at: (i) => {
         const d = distKm(ST[i].x, ST[i].y, sx, sy);
         return { hit: d <= r, margin: Math.abs(d - r) };
@@ -785,7 +961,7 @@ function stationDecider(q, ans) {
       } };
     }
     case 'tentacle': {
-      const r = q.mi * MILE_KM, sx = q.seeker[0], sy = q.seeker[1];
+      const r = qKm(q), sx = q.seeker[0], sy = q.seeker[1];
       if (ans === 'none') {
         return { pos: true, at: (i) => {
           const d = distKm(ST[i].x, ST[i].y, sx, sy);
@@ -863,6 +1039,7 @@ function liveCount() { return liveStations().length; }
 
 /** Noch mögliche Fläche in km² (Vereinigung der Zonen), mit Cache je Stand. */
 function liveArea() {
+  if (egActive()) return egCells().area;
   if (S._area != null && S._areaFor === S.stamp) return S._area;
   S._area = zoneArea(liveStations());
   S._areaFor = S.stamp;
@@ -880,6 +1057,21 @@ function evaluate(q) {
   const live = liveStations();
   if (!live.length) return null;
   const now = liveArea();
+  if (egActive()) {
+    /* Endgame: Anteil der noch offenen Zellen der Zone, über eine Stichprobe
+       von höchstens 150 Gitterpunkten — für die ganze Fragenliste sonst zu langsam. */
+    const E = egCells();
+    const pts = E.pts;
+    if (!pts.length) return null;
+    const step = Math.ceil(pts.length / 150);
+    const smp = pts.filter((_, k) => k % step === 0);
+    const opts = answers.map((a) => {
+      const frac = smp.filter((p) => pointOk(q, a, p)).length / smp.length;
+      return { answer: a, keep: null, area: now * frac, frac };
+    });
+    const worst = Math.max(...opts.map((o) => o.frac));
+    return { opts, worst, total: smp.length, area: now, useless: worst >= 0.999 };
+  }
 
   /* Seit Runde 27 zählt die Wirkung nach Stationen, nicht nach Fläche: ein
      Versteck ist eine Station, und eine Station fällt ganz oder gar nicht —
@@ -937,8 +1129,21 @@ function nearestTwoAt(cat, pt) {
  * gelesen: es bewegt sich nicht, und wenn du es korrigierst, sollen die
  * Antworten sofort stimmen.
  */
-function hideAnswer(q) {
-  const h = S.hide;
+/**
+ * Bezugspunkt der Verstecker-Antworten (Runde 29): bis zum Endgame die
+ * Station des Verstecks — dort zählt die Station, nicht wo genau man in der
+ * Zone steht. Im Endgame die genaue Position.
+ */
+function hidePoint() {
+  if (!S.hide) return null;
+  if (egActive()) return S.hide;
+  const st = hideStation();
+  if (st && distKm(st.x, st.y, S.hide[0], S.hide[1]) <= S.hideRadiusM / 1000) return [st.x, st.y];
+  return S.hide;
+}
+
+function hideAnswer(q, at) {
+  const h = at || hidePoint();
   if (!h || !q || !q.seeker) return null;
   const cmp = (mine, theirs, tol, mineName, theirsName) => ({
     kind: 'measure',
@@ -957,7 +1162,7 @@ function hideAnswer(q) {
 
   switch (q.type) {
     case 'radar': {
-      const r = q.mi * MILE_KM;
+      const r = qKm(q);
       const d = distKm(h[0], h[1], q.seeker[0], q.seeker[1]);
       // „innerhalb" schließt den Rand ein — dieselbe Regel wie stationDecider().
       return { kind: 'radar', ans: d <= r ? 'yes' : 'no', mine: d, theirs: r,
@@ -1055,6 +1260,7 @@ function hideStatus() {
 
 function hideStatusText(st) {
   if (!st) return '';
+  if (egActive() && st.ok) return 'Endgame · Antworten ab genauer Position';
   if (st.illegal) return 'keine Station in Reichweite';
   if (!st.ok) return 'ausgeschlossen';
   return 'im Gebiet · ' + st.n + (st.n === 1 ? ' Station' : ' Stationen');
@@ -1184,22 +1390,22 @@ function buildCatalog() {
   /* --- Radar --- */
   cat.push({
     title: 'Radar', hint: '2 Karten ziehen, 1 behalten',
-    items: RADAR_MI.map((mi) => ({
-      type: 'radar', mi, seeker: sk,
-      name: fmtMi(mi), sub: (mi * MILE_KM).toFixed(2) + ' km Radius',
-      ask: 'Bist du innerhalb von <em>' + fmtMi(mi) + '</em> von mir?',
-      ctx: () => 'Radius ' + (mi * MILE_KM).toFixed(2) + ' km',
+    items: RADAR_KM.map((km) => ({
+      type: 'radar', km, seeker: sk,
+      name: fmtKm(km), sub: fmtKm(km) + ' Radius',
+      ask: 'Bist du innerhalb von <em>' + fmtKm(km) + '</em> von mir?',
+      ctx: () => 'Radius ' + fmtKm(km),
     })),
   });
 
   /* --- Thermometer --- */
   cat.push({
     title: 'Thermometer', hint: 'Erst fahren, dann Endpunkt setzen',
-    items: THERMO_MI.map((mi) => ({
-      type: 'thermo', mi, seeker: sk, needsSecond: true,
-      name: fmtMi(mi) + ' fahren',
+    items: THERMO_KM.map((km) => ({
+      type: 'thermo', km, seeker: sk, needsSecond: true,
+      name: fmtKm(km) + ' fahren',
       sub: 'Startpunkt = aktuelle Position',
-      ask: 'Nach <em>' + fmtMi(mi) + '</em> Fahrt: wärmer oder kälter?',
+      ask: 'Nach <em>' + fmtKm(km) + '</em> Fahrt: wärmer oder kälter?',
       ctx: () => 'Endpunkt als Koordinate eingeben',
     })),
   });
@@ -1209,12 +1415,12 @@ function buildCatalog() {
   for (const c of ['museum', 'library', 'cinema', 'hospital']) {
     if (!activePois(c).length) continue;
     tent.push({
-      type: 'tentacle', cat: c, mi: 1, seeker: sk,
-      name: CATS[c].plural + ' · 1 Meile',
+      type: 'tentacle', cat: c, km: TENTACLE_KM, seeker: sk,
+      name: CATS[c].plural + ' · ' + fmtKm(TENTACLE_KM),
       sub: decl(c).welch + ' ' + CATS[c].label + ' ist dir am nächsten?',
       ask: decl(c).welchem + ' <em>' + CATS[c].label +
-           '</em> im Umkreis von 1 Meile bist du am nächsten?',
-      ctx: () => inReach(c, sk, 1).length + ' in Reichweite',
+           '</em> im Umkreis von ' + fmtKm(TENTACLE_KM) + ' bist du am nächsten?',
+      ctx: () => inReach(c, sk, TENTACLE_KM).length + ' in Reichweite',
     });
   }
   cat.push({ title: 'Tentacles', hint: '4 Karten ziehen, 2 behalten · nur Medium+', items: tent });
@@ -1222,19 +1428,13 @@ function buildCatalog() {
   return cat;
 }
 
-function inReach(cat, pt, mi) {
-  const r = mi * MILE_KM;
+function inReach(cat, pt, r) {
   const pois = activePois(cat);
   const out = [];
   pois.forEach((p, i) => { if (distKm(p.x, p.y, pt[0], pt[1]) <= r) out.push({ i, p }); });
   return out;
 }
 
-function fmtMi(mi) {
-  if (mi === 0.25) return '¼ Meile';
-  if (mi === 0.5) return '½ Meile';
-  return mi + (mi === 1 ? ' Meile' : ' Meilen');
-}
 
 const ANS_LABEL = {
   yes: 'Ja', no: 'Nein', closer: 'Näher', further: 'Weiter weg',
@@ -1250,6 +1450,9 @@ function initMap() {
   S.map = L.map('map', { zoomControl: true, attributionControl: true }).setView([c[1], c[0]], 11);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18, attribution: '© OpenStreetMap',
+    // CORS-Anfragen, damit der Service Worker die Kacheln platzsparend
+    // speichern kann (Runde 31; OSM liefert Access-Control-Allow-Origin: *).
+    crossOrigin: true,
   }).addTo(S.map);
 
   S.layers.excl = L.layerGroup().addTo(S.map);
@@ -1428,14 +1631,15 @@ function drawArea() {
   if (S.noMap || !S.layers.area) return;
   S.layers.area.clearLayers();
 
-  // Kein eigener Umriss fürs Spielgebiet-Rechteck — die rote Ausschlussfläche
+  // Kein eigener Umriss fürs Spielgebiet-Rechteck — die graue Ausschlussfläche
   // (ExclusionLayer) markiert die Grenze bereits eindeutig.
 
   const css = getComputedStyle(document.body);
   const cv = (n, fb) => css.getPropertyValue(n).trim() || fb;
   const zone = cv('--zone', '#1d4ed8');
   const poiCol = cv('--poi', '#7e22ce');
-  const warn = cv('--warn', '#c0392b');
+  const warn = cv('--warn', '#b06f16');      // unwahrscheinlich
+  const egCol = cv('--exclude', '#c0392b');  // Endgame
   const dead = cv('--muted', '#8a8a8a');
 
   /* Stationen und ihre Versteckradien — ein gemeinsamer Schalter. Im Zentrum
@@ -1445,10 +1649,12 @@ function drawArea() {
     const w = zoneWeight();
     const g = dotGrow();
     for (const s of liveStations()) {
+      const dz = S.doubt.has(s.i) && !S.endgame.has(s.i);
       L.circle([s.y, s.x], {
         radius: S.hideRadiusM,
-        color: S.endgame.has(s.i) ? warn : zone,
+        color: S.endgame.has(s.i) ? egCol : dz ? warn : zone,
         weight: w, opacity: .85, fill: false, interactive: false,
+        dashArray: dz ? '6 5' : null,
       }).addTo(S.layers.area);
     }
 
@@ -1457,12 +1663,13 @@ function drawArea() {
     for (const s of hideStations()) {
       const live = stationLive(s);
       const eg = S.endgame.has(s.i);
-      const col = eg ? warn : (live ? zone : dead);
+      const dz = live && !eg && S.doubt.has(s.i);
+      const col = eg ? egCol : dz ? warn : (live ? zone : dead);
       L.circleMarker([s.y, s.x], {
         radius: (eg ? 5 : (live ? 4 : 2.5)) + (live || eg ? g : 0),
         color: col, weight: eg ? 2 : 1.5, opacity: live ? 1 : .5,
         fillColor: col, fillOpacity: live ? .9 : .3, interactive: true,
-      }).bindTooltip(esc(s.n) + (eg ? ' · Endgame' : (live ? '' : ' · raus')),
+      }).bindTooltip(esc(s.n) + (eg ? ' · Endgame' : dz ? ' · unwahrscheinlich' : (live ? '' : ' · raus')),
                      { direction: 'top', offset: [0, -4] })
         .on('click', (e) => { L.DomEvent.stop(e); openStationSheet(s); })
         .addTo(S.layers.area);
@@ -1471,7 +1678,7 @@ function drawArea() {
 
   /* Orte einer einzigen Kategorie (alle Kinos ODER alle Zoos …) — welche,
      steht im Orte-Tab. Alles auf einmal war im Zentrum unlesbar. Weißer Ring
-     um den lila Punkt, damit er auf hellen Kacheln wie auf der roten
+     um den lila Punkt, damit er auf hellen Kacheln wie auf der grauen
      Ausschlussfläche sichtbar bleibt. */
   if (S.poiCat && CATS[S.poiCat]) {
     const c = S.poiCat;
@@ -1512,8 +1719,9 @@ function drawDivisions() {
   /* Beide Ebenen durchgezogen und ähnlich dick (Bene, Runde 16) — gestrichelt
      und dünn war für die Stadtteile zu schlecht zu erkennen. Unterschieden
      werden sie jetzt über die Farbe: Bezirke lila wie die Orte, Stadtteile
-     fast schwarz. Schwarz, weil es das einzige ist, was auch auf der roten
-     Ausschlussfläche noch trägt (5,5:1 gegen 2,8:1 bei Lila). */
+     fast schwarz. Schwarz, weil es auch auf der Ausschlussfläche noch trägt
+     (gemessen in Runde 19 auf der damals roten Fläche: 5,5:1 gegen 2,8:1
+     bei Lila). */
   const levels = [
     ['d3', { color: dark, weight: w3, opacity: .85 }],
     ['d2', { color: col, weight: w2, opacity: .95 }],
@@ -1544,40 +1752,61 @@ function openStationSheet(s) {
   const eg = S.endgame.has(s.i);
   const forced = S.force.has(s.i);
   const manual = S.manual.has(s.i);
+  const doubt = S.doubt.has(s.i);
   const state = manual ? 'von Hand ausgeschlossen'
-    : eg ? 'Endgame ausgelöst — bleibt möglich'
+    : eg ? 'Endgame läuft hier'
+    : egActive() ? 'ausgegraut — Endgame läuft woanders'
     : forced ? 'von Hand möglich gelassen'
-    : (S.killed[s.i] ? 'durch eine Antwort ausgeschlossen' : 'noch möglich');
+    : (S.killed[s.i] ? 'durch eine Antwort ausgeschlossen'
+      : doubt ? 'möglich, aber unwahrscheinlich' : 'noch möglich');
 
   card.innerHTML =
     '<div class="qtitle" id="sheetTitle">' + esc(s.n) + '</div>' +
     '<div class="qmeta">' + kindLabel(s) +
     ' · ' + state + ' · ' + s.y.toFixed(5) + ', ' + s.x.toFixed(5) + '</div>' +
     '<div class="answers">' +
+    '<button class="ans ' + (eg ? 'no' : 'yes') + '" id="stEnd">' +
+    (eg ? 'Endgame beenden' : 'Endgame hier starten') + '</button>' +
+    '<button class="ans ' + (doubt ? 'yes' : 'no') + '" id="stDoubt">' +
+    (doubt ? 'Doch wahrscheinlich' : 'Unwahrscheinlich markieren') + '</button>' +
     '<button class="ans ' + (manual ? 'yes' : 'no') + '" id="stManual">' +
     (manual ? 'Ausschluss aufheben' : 'Von Hand ausschließen') + '</button>' +
-    '<button class="ans ' + (eg ? 'no' : 'yes') + '" id="stEnd">' +
-    (eg ? 'Endgame zurücknehmen' : 'Endgame hier ausgelöst') + '</button>' +
-    '<button class="ans ' + (forced ? 'no' : 'yes') + '" id="stForce">' +
-    (forced ? 'Doch ausschließen' : 'Trotzdem möglich lassen') + '</button>' +
+    /* „Trotzdem möglich lassen" nur, wo es etwas bewirkt: bei einer Station,
+       die eine Antwort ausgeschlossen hat (oder die schon so markiert ist). */
+    (forced || S.killed[s.i]
+      ? '<button class="ans ' + (forced ? 'no' : 'yes') + '" id="stForce">' +
+        (forced ? 'Doch ausschließen' : 'Trotzdem möglich lassen') + '</button>'
+      : '') +
     '</div>' +
-    '<div class="note">Endgame und „trotzdem möglich lassen" halten die Zone ' +
-    'offen, auch wenn eine Antwort gegen die Station spricht: einmal, weil du ' +
-    'dort gerade suchst, einmal, weil du dem Ausschluss nicht traust — etwa bei ' +
-    'einer Station direkt auf einer Stadtteilgrenze.</div>' +
+    '<div class="note"><b>Endgame:</b> alle anderen Stationen werden ausgegraut. Ab ' +
+    'jetzt bewegt sich das Versteck nicht mehr; Fragen beziehen sich auf seine ' +
+    'genaue Position und schneiden die Zone selbst zu.<br>' +
+    '<b>Unwahrscheinlich:</b> ihr haltet die Station für eher raus — etwa nach ' +
+    'einer Fotofrage —, seid euch aber nicht sicher. Sie wird gelb markiert; ' +
+    'Fragen schließen sie weiterhin ganz normal aus.' +
+    (forced || S.killed[s.i]
+      ? '<br><b>Trotzdem möglich lassen:</b> wenn ihr dem Ausschluss nicht traut ' +
+        '— etwa bei einer Station direkt an einer Grenze.'
+      : '') + '</div>' +
     '<button class="ghost" data-a="">Schließen</button>';
 
   const only = (set) => { for (const x of [S.manual, S.endgame, S.force]) if (x !== set) x.delete(s.i); };
   card.querySelector('#stManual').onclick = () => {
-    if (manual) S.manual.delete(s.i); else { only(S.manual); S.manual.add(s.i); }
+    if (manual) S.manual.delete(s.i); else { only(S.manual); S.manual.add(s.i); S.doubt.delete(s.i); }
     closeSheet(); afterStationChange();
   };
   card.querySelector('#stEnd').onclick = () => {
-    if (eg) S.endgame.delete(s.i); else { only(S.endgame); S.endgame.add(s.i); }
+    // Nur ein Endgame zur Zeit: ein neues ersetzt das alte.
+    if (eg) S.endgame.delete(s.i); else { only(S.endgame); S.endgame.clear(); S.endgame.add(s.i); }
     closeSheet(); afterStationChange();
   };
-  card.querySelector('#stForce').onclick = () => {
+  const forceBtn = card.querySelector('#stForce');
+  if (forceBtn) forceBtn.onclick = () => {
     if (forced) S.force.delete(s.i); else { only(S.force); S.force.add(s.i); }
+    closeSheet(); afterStationChange();
+  };
+  card.querySelector('#stDoubt').onclick = () => {
+    if (doubt) S.doubt.delete(s.i); else S.doubt.add(s.i);
     closeSheet(); afterStationChange();
   };
   card.querySelectorAll('[data-a]').forEach((b) => { b.onclick = closeSheet; });
@@ -1596,10 +1825,8 @@ function renderSetupIfOpen() {
 }
 
 /**
- * Exakte Kanten der beantworteten Fragen als scharfe Linien über das Raster
- * legen — ein Radar-Kreis ist ein Kreis, keine Treppe aus Rasterzellen.
- * Das Raster bleibt für die Flächenrechnung zuständig, diese Linien zeigen,
- * wo die Grenze tatsächlich verläuft.
+ * Kanten der beantworteten Radar-, Tentakel- und Thermometerfragen als Linien
+ * — sie zeigen, wo die Grenze einer Frage tatsächlich verläuft.
  */
 function drawEdges() {
   if (S.noMap || !S.layers.edges) return;
@@ -1611,12 +1838,12 @@ function drawEdges() {
     const q = h.q;
     if (q.type === 'radar') {
       L.circle([q.seeker[1], q.seeker[0]], {
-        ...style, radius: q.mi * MILE_KM * 1000,
+        ...style, radius: qKm(q) * 1000,
         dashArray: h.ans === 'yes' ? null : '5 4',
       }).addTo(S.layers.edges);
     } else if (q.type === 'tentacle') {
       L.circle([q.seeker[1], q.seeker[0]], {
-        ...style, radius: q.mi * MILE_KM * 1000, dashArray: '5 4', weight: 1.5,
+        ...style, radius: qKm(q) * 1000, dashArray: '5 4', weight: 1.5,
       }).addTo(S.layers.edges);
     } else if (q.type === 'thermo') {
       const pts = bisectorPath(q.from, q.to, boxDiagKm() * 1.1);
@@ -1635,7 +1862,7 @@ function renderExclusion() {
 /**
  * Overlay der ausgeschlossenen Fläche — seit Runde 13 reine Vektorgeometrie.
  *
- * Gezeichnet wird: Spielgebiet deckend rot füllen, dann die 500-m-Kreise der
+ * Gezeichnet wird: Spielgebiet deckend grau füllen, dann die 500-m-Kreise der
  * noch möglichen Stationen mit `destination-out` ausstanzen. Das passiert auf
  * einem unsichtbaren zweiten Canvas; erst das fertige Bild wird einmal mit
  * halber Deckkraft aufs sichtbare Canvas gelegt.
@@ -1661,7 +1888,7 @@ function defineExclusionLayer() {
       if (map._zoomAnimated) map.on('zoomanim', this._animZoom, this);
       /* Zwei-Finger-Zoom feuert **kein** `zoomanim`: Leaflet schiebt dabei
          fortlaufend `_move()` mit gebrochener Zoomstufe durch und meldet das
-         nur als `zoom`. Ohne diesen Zuhörer stand die rote Fläche während der
+         nur als `zoom`. Ohne diesen Zuhörer stand die graue Fläche während der
          ganzen Geste still und sprang erst am Ende an ihren Platz. */
       map.on('zoom', this._onZoom, this);
       this._reset();
@@ -1760,6 +1987,39 @@ function defineExclusionLayer() {
         o.fill();
       }
       o.globalCompositeOperation = 'source-over';
+
+      // Endgame: Zellen, die eine Endgame-Antwort widerlegt, wieder abdecken.
+      if (egActive() && egCells().any) {
+        /* Marching Squares: je Gitterquadrat das widerlegte Stück als Polygon,
+           Kanten zwischen den Ecken linear interpoliert. Alles in EINEM Pfad
+           gefüllt — getrennt gefüllt blieben zwischen den Quadraten feine
+           helle Nähte stehen. */
+        const E = egCells(), { nx, ny, F } = E;
+        const P = (i, j) => px(E.y0 + j * E.dLat, E.x0 + i * E.dLon);
+        o.beginPath();
+        for (let j = 0; j < ny - 1; j++) {
+          for (let i = 0; i < nx - 1; i++) {
+            const c = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]];
+            const v = c.map(([a, bb]) => F[bb * nx + a]);
+            if (v.every((x) => x >= 0)) continue;
+            const pp = c.map(([a, bb]) => P(a, bb));
+            const poly = [];
+            for (let k = 0; k < 4; k++) {
+              const k2 = (k + 1) % 4, va = v[k], vb = v[k2];
+              if (va < 0) poly.push(pp[k]);
+              if ((va < 0) !== (vb < 0)) {
+                const t = isFinite(va) && isFinite(vb) ? va / (va - vb) : (va < 0 ? 1 : 0);
+                poly.push([pp[k][0] + (pp[k2][0] - pp[k][0]) * t, pp[k][1] + (pp[k2][1] - pp[k][1]) * t]);
+              }
+            }
+            if (poly.length < 3) continue;
+            o.moveTo(poly[0][0], poly[0][1]);
+            for (let k = 1; k < poly.length; k++) o.lineTo(poly[k][0], poly[k][1]);
+            o.closePath();
+          }
+        }
+        o.fill('nonzero');
+      }
 
       // Einmal komponieren — halbe Deckkraft, überall gleich.
       ctx.globalAlpha = 0.5;
@@ -1872,7 +2132,10 @@ function updateStats() {
   else if (area >= 0.1) el.textContent = area.toFixed(1);
   else el.textContent = area.toFixed(2);
   el.style.color = k === 0 ? 'var(--exclude)' : 'var(--keep)';
-  el.title = k + ' von ' + hideStations().length + ' Stationen noch möglich';
+  const dz = liveStations().filter((s) => S.doubt.has(s.i)).length;
+  el.title = egActive() ? 'Endgame: noch mögliche Fläche in der Zone'
+    : k + ' von ' + hideStations().length + ' Stationen noch möglich' +
+      (dz ? ', davon ' + dz + ' unwahrscheinlich' : '');
 }
 
 /* ============================================================
@@ -1886,7 +2149,20 @@ function updateStats() {
  * stillschweigend die Bezugsposition aller Fragen wanderte.
  */
 function onMapClick(e) {
-  if (!S.picking) return;
+  if (!S.picking) {
+    /* Runde 29: Auf dem Handy trifft man den kleinen Punkt schlecht. Ein Tipp
+       bis 28 px daneben öffnet die nächste Station. */
+    if (S.showZones && S.map) {
+      let best = 28, hit = null;
+      for (const s of hideStations()) {
+        const p = S.map.latLngToContainerPoint([s.y, s.x]);
+        const d = Math.hypot(p.x - e.containerPoint.x, p.y - e.containerPoint.y);
+        if (d < best) { best = d; hit = s; }
+      }
+      if (hit) openStationSheet(hit);
+    }
+    return;
+  }
   const pt = [e.latlng.lng, e.latlng.lat];
   const f = S.picking; S.picking = null; hint(null);
   restorePanelAfterPick();
@@ -2458,7 +2734,7 @@ function renderAsk() {
       } else if (!S.showGain) {
         gain = '';
       } else if (q.type === 'tentacle') {
-        const n = inReach(q.cat, S.seeker, q.mi).length;
+        const n = inReach(q.cat, S.seeker, qKm(q)).length;
         gain = '<div class="gain"><span class="gaintxt">' + n + ' in Reichweite</span></div>';
         if (n === 0) row.classList.add('dead');
       } else {
@@ -2510,7 +2786,7 @@ function askThermoEnd(q, from, done, onCancel) {
     if (to) done(to); else if (onCancel) onCancel();
   };
   askCoords({
-    title: 'Endpunkt nach ' + fmtMi(q.mi) + ' Fahrt',
+    title: 'Endpunkt nach ' + fmtKm(qKm(q)) + ' Fahrt',
     cur: q.to || a, geo: true, map: true, okLabel: 'Endpunkt setzen',
     set: finish, onCancel: () => finish(null),
   });
@@ -2568,7 +2844,7 @@ function showSheet(q, ev) {
   for (const a of answers) {
     const o = ev && ev.opts.find((x) => x.answer === a);
     const cls = (a === 'no' || a === 'further' || a === 'colder') ? 'no' : 'yes';
-    const sub = o ? o.keep + ' Stat. · ' + fmtArea(o.area) + ' km²' : '';
+    const sub = o ? (o.keep != null ? o.keep + ' Stat. · ' : '') + fmtArea(o.area) + ' km²' : '';
     html += '<button class="ans ' + cls + (ha && ha.ans === a ? ' true' : '') +
             '" data-a="' + a + '">' +
             ANS_LABEL[a] + (sub ? '<small>' + sub + '</small>' : '') + '</button>';
@@ -2620,11 +2896,11 @@ function hideSheetText(q, ha) {
 
 function showTentacleSheet(q) {
   const card = document.getElementById('sheetCard');
-  const reach = inReach(q.cat, S.seeker, q.mi);
+  const reach = inReach(q.cat, S.seeker, qKm(q));
   let html =
     '<div class="qtitle" id="sheetTitle">' + q.ask + '</div>' +
     '<div class="qmeta">' + reach.length + ' ' + CATS[q.cat].plural +
-    ' im Umkreis von ' + fmtMi(q.mi) + '</div>';
+    ' im Umkreis von ' + fmtKm(qKm(q)) + '</div>';
 
   if (!reach.length) {
     html += '<div class="note">Keine ' + CATS[q.cat].plural +
@@ -2662,8 +2938,9 @@ function commit(q, ans) {
   const before = liveCount();
   // Grenzfälle vor dem Anwenden bestimmen — danach sind sie von den übrigen
   // möglichen Stationen nicht mehr zu unterscheiden.
-  const grenz = borderlineFor(q, ans, liveStations());
-  applyAnswer(q, ans);
+  const eg = egActive();
+  const grenz = eg ? [] : borderlineFor(q, ans, liveStations());
+  applyAnswer(q, ans, eg);
   S.stamp++;
   const after = liveCount();
 
@@ -2672,7 +2949,7 @@ function commit(q, ans) {
     answerText = activePois(q.cat)[+ans]?.n || ans;
   }
   S.history.push({
-    q: { ...q }, ans, label, answerText,
+    q: { ...q }, ans, label, answerText, eg,
     before, after, grenz,
     area: liveArea(),
   });
@@ -2681,7 +2958,10 @@ function commit(q, ans) {
 }
 
 /** Eine Antwort auf S.killed anwenden (ohne Neuzeichnen). */
-function applyAnswer(q, ans) {
+function applyAnswer(q, ans, eg) {
+  // Endgame-Fragen beziehen sich auf die genaue Position, nicht auf Stationen
+  // — sie wirken über egCells(), nicht über S.killed.
+  if (eg) return;
   const m = applyQuestion(q, ans);
   for (let i = 0; i < S.killed.length; i++) if (!m[i]) S.killed[i] = 1;
 }
@@ -2695,8 +2975,8 @@ function recompute() {
   S.killed = new Uint8Array(S.stations.length);
   S.stamp++;
   for (const h of S.history) {
-    h.grenz = borderlineFor(h.q, h.ans, liveStations());
-    applyAnswer(h.q, h.ans);
+    h.grenz = h.eg ? [] : borderlineFor(h.q, h.ans, liveStations());
+    applyAnswer(h.q, h.ans, h.eg);
     S.stamp++;
     h.after = liveCount();
     h.area = liveArea();
@@ -2864,7 +3144,8 @@ function renderHist() {
     const good = ['yes', 'closer', 'hotter'].includes(h.ans);
     html += '<div class="hrow"><div class="hnum">' + (i + 1) + '</div>' +
       '<div class="hmain"><div class="hq">' + esc(h.label) + '</div>' +
-      '<div class="ha ' + (good ? 'yes' : 'no') + '">' + esc(h.answerText) + '</div></div>' +
+      '<div class="ha ' + (good ? 'yes' : 'no') + '">' + esc(h.answerText) +
+      (h.eg ? ' <span class="egtag">Endgame</span>' : '') + '</div></div>' +
       '<div class="hkm">' + fmtArea(h.area) + ' km²' +
       (h.grenz && h.grenz.length
         ? '<button class="minibtn" data-grenz="' + i + '" title="Grenzfälle ansehen">' +
@@ -2930,10 +3211,40 @@ function installGroupHtml() {
     body = '<div class="note">Im Browsermenü <b>⋮</b> auf <b>„App installieren“</b> bzw. ' +
       '<b>„Zum Startbildschirm hinzufügen“</b> tippen.</div>';
   }
-  return '<div class="group"><div class="grouphd">App</div>' + body + '</div>';
+  /* Kartenspeicher (Runde 32): Kacheln, die der Service Worker gespeichert
+     hat. Gehören zur Website im Browser, nicht zur installierten App — auf
+     Android bleiben sie nach dem Deinstallieren liegen, deshalb hier zum
+     Leeren. */
+  const store = ('caches' in self)
+    ? '<div class="catrow"><b>Gespeicherte Karte</b><span class="cnt" id="tileInfo">…</span>' +
+      '<button class="minibtn" id="tileClear">Leeren</button></div>'
+    : '';
+  return '<div class="group"><div class="grouphd">App</div>' + body + store + '</div>';
+}
+
+const TILE_CACHE = 'rheinjagd-tiles-v1';   // gleicher Name wie in sw.js
+
+async function showTileInfo(box) {
+  const el = box.querySelector('#tileInfo');
+  if (!el) return;
+  try {
+    const n = (await (await caches.open(TILE_CACHE)).keys()).length;
+    let mb = '';
+    if (navigator.storage && navigator.storage.estimate) {
+      const est = await navigator.storage.estimate();
+      if (est.usage) mb = ' · ' + (est.usage / 1048576).toFixed(0) + ' MB gesamt';
+    }
+    el.textContent = n + ' Kacheln' + mb;
+  } catch (e) { el.textContent = '—'; }
 }
 
 function bindInstall(box) {
+  showTileInfo(box);
+  const clr = box.querySelector('#tileClear');
+  if (clr) clr.onclick = async () => {
+    try { await caches.delete(TILE_CACHE); } catch (e) {}
+    showTileInfo(box);
+  };
   const b = box.querySelector('#appInstall');
   if (!b) return;
   b.onclick = async () => {
@@ -2953,6 +3264,7 @@ function renderSetup() {
   const manual = [...S.manual].filter((i) => kindOk(S.stations[i]));
   const endg = [...S.endgame].filter((i) => kindOk(S.stations[i]));
   const forced = [...S.force].filter((i) => kindOk(S.stations[i]));
+  const doubts = [...S.doubt].filter((i) => kindOk(S.stations[i]));
 
   const stRow = (i, kind) =>
     '<div class="catrow"><b>' + esc(S.stations[i].n) + '</b>' +
@@ -2992,6 +3304,10 @@ function renderSetup() {
     (manual.length
       ? '<div class="catrow"><b>Von Hand ausgeschlossen</b><span class="cnt">' + manual.length + '</span></div>' +
         manual.map((i) => stRow(i, 'manual')).join('')
+      : '') +
+    (doubts.length
+      ? '<div class="catrow"><b>Unwahrscheinlich</b><span class="cnt">' + doubts.length + '</span></div>' +
+        doubts.map((i) => stRow(i, 'doubt')).join('')
       : '') +
     (endg.length
       ? '<div class="catrow"><b>Endgame ausgelöst</b><span class="cnt">' + endg.length + '</span></div>' +
@@ -3067,7 +3383,7 @@ function renderSetup() {
   box.querySelectorAll('[data-undo]').forEach((b) => {
     b.onclick = () => {
       const [kind, i] = b.dataset.undo.split(':');
-      ({ manual: S.manual, endgame: S.endgame, force: S.force })[kind].delete(+i);
+      ({ manual: S.manual, endgame: S.endgame, force: S.force, doubt: S.doubt })[kind].delete(+i);
       afterStationChange();
     };
   });
@@ -3088,8 +3404,8 @@ function fmtArea(a) {
   return a.toFixed(2);
 }
 
-/** Versteckzone/Startpunkt ändern: Verlauf neu anwenden. Ohne Raster ist das
-    sofort durch — kein Neuaufbau von Zellen, nur 245 Punktprüfungen je Frage. */
+/** Versteckzone/Startpunkt ändern: Verlauf neu anwenden — je Frage nur eine
+    Prüfung pro Station, das ist sofort durch. */
 function changeArea(patch) {
   if (patch.home) S.home = patch.home;
   if (patch.hideRadiusM) S.hideRadiusM = patch.hideRadiusM;
@@ -3402,8 +3718,8 @@ function save() {
       home: S.home,
       hideRadiusM: S.hideRadiusM, hideKinds: S.hideKinds,
       showZones: S.showZones, showLines: S.showLines, showGain: S.showGain,
-      manual: [...S.manual], endgame: [...S.endgame], force: [...S.force],
-      history: S.history.map((h) => ({ q: h.q, ans: h.ans, label: h.label, answerText: h.answerText })),
+      manual: [...S.manual], endgame: [...S.endgame], force: [...S.force], doubt: [...S.doubt],
+      history: S.history.map((h) => ({ q: h.q, ans: h.ans, label: h.label, answerText: h.answerText, eg: !!h.eg })),
       disabled: Object.fromEntries(Object.entries(S.disabled).map(([k, v]) => [k, [...v]])),
       expanded: Object.keys(S.expanded),
       customPois: S.customPois,
@@ -3423,44 +3739,27 @@ function load() {
     const d = JSON.parse(raw);
     if (d.seeker) S.seeker = d.seeker;
     if (Array.isArray(d.hide) && isFinite(d.hide[0]) && isFinite(d.hide[1])) S.hide = d.hide;
-    if (d.home && isFinite(d.home.x) && isFinite(d.home.y)) {
-      const untouched = Math.abs(d.home.x - HOME_LEGACY.x) < 1e-5 &&
-                        Math.abs(d.home.y - HOME_LEGACY.y) < 1e-5;
-      S.home = untouched ? { ...HOME_DEFAULT } : d.home;
-    }
-    // Alte Schlüssel bewusst nicht mehr gelesen: d.radiusKm (Radius-Kreis,
-    // Runde 11), d.hideZoneOn und d.fineEdgesOn (Raster-Ära). Die Versteckzone
-    // ist seit dem Stationsmodell keine Option mehr, sondern die Grundlage.
+    if (d.home && isFinite(d.home.x) && isFinite(d.home.y)) S.home = d.home;
     if (d.hideRadiusM >= 50 && d.hideRadiusM <= 2000) S.hideRadiusM = d.hideRadiusM;
     if (d.hideKinds) S.hideKinds = { ...S.hideKinds, ...d.hideKinds };
-    // Bis Runde 13 waren Stationspunkte und Radien zwei Schalter — ein alter
-    // Spielstand zählt als "an", wenn einer der beiden an war.
     if (typeof d.showZones === 'boolean') S.showZones = d.showZones;
     if (typeof d.showLines === 'boolean') S.showLines = d.showLines;
     if (typeof d.showGain === 'boolean') S.showGain = d.showGain;
-    else if (typeof d.showStations === 'boolean' || typeof d.showRadii === 'boolean')
-      S.showZones = !!(d.showStations || d.showRadii);
     // Stationsmarken sind Indizes. Hat sich die Stationsliste seit dem
-    // Speichern geändert (Runde 24: 245 → 218), zeigten sie auf falsche
-    // Stationen — dann lieber verwerfen. Alte Stände ohne nst hatten 245.
-    if ((d.nst ?? 245) === S.data.stations.length) {
+    // Speichern geändert, zeigten sie auf falsche Stationen — dann verwerfen.
+    if (d.nst === S.data.stations.length) {
       if (Array.isArray(d.manual)) S.manual = new Set(d.manual.filter(Number.isInteger));
       if (Array.isArray(d.endgame)) S.endgame = new Set(d.endgame.filter(Number.isInteger));
       if (Array.isArray(d.force)) S.force = new Set(d.force.filter(Number.isInteger));
+      if (Array.isArray(d.doubt)) S.doubt = new Set(d.doubt.filter(Number.isInteger));
     }
     if (d.disabled) for (const [k, v] of Object.entries(d.disabled)) S.disabled[k] = new Set(v);
     if (d.history) S.history = d.history.map((h) => ({ ...h, before: 0, after: 0, area: 0 }));
-    // Altes Schema (d.collapsed = explizit zugeklappte Gruppen) bewusst nicht
-    // übernommen — der Standard ist jetzt zugeklappt, ein alter Spielstand
-    // ohne "expanded" landet damit korrekt beim neuen Standard statt bei
-    // "alles offen".
     if (Array.isArray(d.expanded)) for (const k of d.expanded) S.expanded[k] = true;
     if (Array.isArray(d.customPois)) {
       S.customPois = d.customPois.filter((p) =>
         p && CATS[p.c] && typeof p.n === 'string' && isFinite(p.x) && isFinite(p.y));
     }
-    // d.showPois (alles-oder-nichts) wird bewusst nicht mehr gelesen: die
-    // Anzeige läuft jetzt über genau eine Kategorie.
     if (typeof d.poiCat === 'string' && CATS[d.poiCat]) S.poiCat = d.poiCat;
     if (d.showDiv) S.showDiv = { d2: !!d.showDiv.d2, d3: !!d.showDiv.d3 };
     if (d.shared && isFinite(d.shared.x) && isFinite(d.shared.y)) S.shared = d.shared;
@@ -3830,6 +4129,21 @@ function initTheme() {
 /* ============================================================
    Start
    ============================================================ */
+/** Kompakt eingebettete Grenzlinien zurückrechnen (Gegenstück in build.js):
+    ganze Millionstel Grad als Differenzen → [lon, lat]. Verlustfrei. */
+function decodeData(d) {
+  if (d.enc !== 'd6') return;
+  const dec = (a) => {
+    const out = [];
+    let x = 0, y = 0;
+    for (let k = 0; k < a.length; k += 2) { x += a[k]; y += a[k + 1]; out.push([x / 1e6, y / 1e6]); }
+    return out;
+  };
+  d.divisions.arcs = d.divisions.arcs.map(dec);
+  d.city_boundary.coordinates = d.city_boundary.coordinates.map(dec);
+  delete d.enc;
+}
+
 function boot() {
   // iOS-Safari ignoriert user-scalable=no; ohne das zoomt ein schneller
   // Pinch die ganze Seite statt der Karte, und man kommt nicht mehr heraus.
@@ -3837,6 +4151,7 @@ function boot() {
   ['gesturestart', 'gesturechange'].forEach(t =>
     document.addEventListener(t, e => e.preventDefault(), { passive: false }));
   S.data = window.__KOELN__;
+  decodeData(S.data);
   expandDivisions(S.data);
 
   // Spielgebiet: festes Rechteck aus den Daten (Bounding-Box der Stationen
@@ -3864,7 +4179,7 @@ function boot() {
     // Das Versteck gehört zur Runde, nicht zur Oberfläche: neue Runde,
     // neues Versteck.
     S.history = []; S.seeker = null; S.hide = null; S.thermoFrom = null;
-    S.manual.clear(); S.endgame.clear(); S.force.clear();
+    S.manual.clear(); S.endgame.clear(); S.force.clear(); S.doubt.clear();
     S.shared = null;
     cancelPicking();
     renderMarks(); recompute(); drawArea();

@@ -1,13 +1,14 @@
 # Rohdaten von OpenStreetMap holen
 
-Vier Dateien in `data/` kommen direkt aus OSM. Der Build liest sie, schreibt
+Fünf Dateien in `data/` kommen direkt aus OSM. Der Build liest sie, schreibt
 sie nie zurück — wer Daten ändern will, ändert sie hier oder in `build-data.js`.
 
 | Datei | Inhalt | gelesen von |
 |---|---|---|
-| `koeln-raw.json` | Rhein-Linie + Orte der Kernstadt | `build-data.js` |
+| `koeln-rhein.json` | Rhein-Linie | `build-data.js` |
 | `koeln-ring25-pois.json` | Orte im 25-km-Ring um den Hbf | `build-data.js` |
-| `koeln-stations.json` | die 245 Stationen | `build-data.js` |
+| `koeln-stations.json` | die 211 Stationen (Namen nach KVB-Plan) | `build-data.js` |
+| `koeln-transit.json` | Linien, Linienverläufe, Flughäfen, Schnellfahrstrecken | `build-data.js` |
 | `koeln-boundaries-raw.json` | Verwaltungsgrenzen als Wege + Relationen | `build-boundaries.js` |
 
 Daraus wird `data/koeln.json` (`node build-data.js`), daraus die fertige Seite
@@ -149,44 +150,40 @@ heißt** (die Podolski-Kette und gleichnamige Läden), **nicht** Antep Mangal,
 Elite Mangal, Mangal Lahmacun/Burger/Baklava und keine reine Firmenadresse
 ohne `amenity`.
 
-**Diese Liste steht als Konstante `MANGAL` in `build-data.js`, nicht in
-`koeln-raw.json`.** Wer die Läden nur in `koeln.json` pflegt, verliert sie
-beim nächsten `node build-data.js`. Stadtteil und Rheinseite rechnet der Build
-selbst; Straßennamen zur Unterscheidung mehrerer Läden im selben Stadtteil
+**Diese Liste steht als Konstante `MANGAL` in `build-data.js`, in keiner
+Rohdatei.** Wer die Läden nur in `koeln.json` pflegt, verliert sie
+beim nächsten `node build-data.js`. Straßennamen zur Unterscheidung mehrerer Läden im selben Stadtteil
 kamen aus einer zweiten Abfrage (`way[highway][name](around:40,…)`).
 
 ---
 
 ## 6. Stationen
 
-`koeln-stations.json`, Felder `{k, n, x, y, u}` — `k` ist `kvb` oder `rail`.
+`koeln-stations.json`, Felder `{k, n, x, y}` — `k` ist `kvb`, `rail` oder
+`both` (Umsteigepunkt mit einem Namen, seit Runde 27).
 **In OSM sind alle KVB-Linien einheitlich `route=tram`**; eine Trennung
 Stadtbahn/Straßenbahn existiert dort nicht und lässt sich aus den Daten nicht
 herstellen. Bus zählt nach den Gruppenregeln nicht.
 
 ---
 
-## 7. Format von `koeln-raw.json`
+## 7. Formate
 
-```json
-{
-  "city": "Köln",
-  "center": [6.9603, 50.9375],
-  "rhein": [[6.97, 50.93]],
-  "pois": [ { "c": "museum", "n": "Museum Ludwig", "x": 6.96, "y": 50.94 } ]
-}
-```
+`koeln-rhein.json`: `{ "quelle": "…", "rhein": [[lon, lat], …] }` (Abfrage
+in Abschnitt 3). Bis Runde 32 hieß die Datei `koeln-raw.json` und enthielt
+zusätzlich eine alte Ortsliste der Kernstadt und einen festen Mittelpunkt —
+beides wurde nicht mehr gelesen; die Kartenmitte ist jetzt die Mitte von
+`play_box`.
 
+`koeln-ring25-pois.json`: `{ "pois": [ { "c", "n", "x", "y" } ] }`.
 Kategorie-Kürzel (`c`): `museum`, `library`, `cinema`, `hospital`, `station`,
-`park`, `zoo`, `aquarium`, `golf`, `consulate`, `theme_park`, `mangal`.
+`park`, `zoo`, `aquarium`, `golf`, `consulate`, `theme_park` (dazu im Build
+`mangal` und `airport`).
 
-Ein früherer Schlüssel `admin` (ausgedünnte Grenzflächen) ist in Runde 22
-entfallen — Grenzen kommen ausschließlich aus `koeln-boundaries-raw.json`.
-**Nicht wiederbeleben.**
-
-Die Datei liegt mit 4er-Einrückung und CRLF auf der Platte, damit Diffs lesbar
-bleiben; `build-data.js` schreibt sie genauso zurück, kompakt wird erst beim
-Einbetten in `index.html`.
+Alle Dateien liegen mit 4er-Einrückung und CRLF auf der Platte, damit Diffs
+lesbar bleiben; `build-data.js` schreibt `koeln.json` genauso. Kompakt wird
+erst beim Einbetten in `index.html` (`build.js`, Grenzlinien zusätzlich als
+ganzzahlige Differenzen).
 
 ---
 

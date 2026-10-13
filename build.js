@@ -17,7 +17,25 @@ const body = R('src/body.html').trimEnd();
 const app = R('src/app.js');
 // koeln.json liegt eingerückt auf der Platte (lesbar im Diff), wird aber
 // kompakt eingebettet — sonst wäre index.html rund dreimal so groß.
-const data = JSON.stringify(JSON.parse(R('data/koeln.json')));
+const dataObj = JSON.parse(R('data/koeln.json'));
+/* Grenzlinien kompakt (Runde 32): Koordinaten als ganze Zahlen in
+   Millionstel Grad (= die 6 Nachkommastellen der Datei, ~11 cm) und davon nur
+   die Differenz zum Vorgänger. Verlustfrei — die App rechnet beim Start exakt
+   dieselben Werte zurück (`decodeData()` in app.js) —, aber die eingebettete
+   Datei schrumpft um gut die Hälfte. */
+const enc = (line) => {
+  let px = 0, py = 0;
+  const out = [];
+  for (const [x, y] of line) {
+    const X = Math.round(x * 1e6), Y = Math.round(y * 1e6);
+    out.push(X - px, Y - py); px = X; py = Y;
+  }
+  return out;
+};
+dataObj.divisions.arcs = dataObj.divisions.arcs.map(enc);
+dataObj.city_boundary.coordinates = dataObj.city_boundary.coordinates.map(enc);
+dataObj.enc = 'd6';
+const data = JSON.stringify(dataObj);
 // Favicon: icon.svg wird eingebettet (keine zusätzliche Anfrage). iOS kann
 // kein SVG als Homescreen-Symbol, dafür liegt apple-touch-icon.png daneben
 // (180 px, ohne runde Ecken — die setzt iOS selbst).
