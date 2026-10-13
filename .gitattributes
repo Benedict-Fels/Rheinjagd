@@ -3,7 +3,8 @@
 # die CRLF-Fassung mit dem LF-Blob im Repo und meldet sie dauerhaft als
 # komplett geändert, obwohl sich kein einziges Zeichen unterscheidet.
 data/koeln.json              text eol=crlf
-data/koeln-raw.json          text eol=crlf
+data/koeln-rhein.json        text eol=crlf
+data/koeln-transit.json      text eol=crlf
 data/koeln-ring25-pois.json  text eol=crlf
 data/koeln-stations.json     text eol=crlf
 README.md                    text eol=crlf

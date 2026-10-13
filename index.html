@@ -374,6 +374,8 @@ button{cursor:pointer;background:none;border:none}
 .btn:hover{filter:brightness(1.08)}
 .btn.flat{background:var(--surface-2);color:var(--ink-2)}
 .btn.flat:hover{background:var(--line);filter:none}
+a.btn{display:flex;align-items:center;justify-content:center;text-decoration:none}
+#shareWa{background:#25d366;color:#fff}
 
 /* ===== Standortleiste ===== */
 .posbar{
@@ -619,6 +621,8 @@ const S = {
   showZones: false,            // Stationspunkte UND Versteckradien auf der Karte
   showLines: false,            // Linienverläufe in Linienfarbe auf der Karte (Runde 26)
   showGain: true,              // Wirkung der Fragen (Anteil wegfallender Stationen) zeigen
+  showCover: false,            // Kartenabdeckung (gespeicherte Kacheln) zeigen — Runde 34
+  coverZ: 14,                  // Zoomstufe, für die die Abdeckung geprüft wird
   expanded: {},                  // Titel aufgeklappter Gruppen (Fragen- und Orte-Tab) —
                                   // Standard ist zugeklappt, hier stehen nur Ausnahmen
   customPois: [],                // benutzerdefinierte Orte: {id,c,n,x,y}
@@ -1977,6 +1981,7 @@ function initMap() {
      ein Tipp auf eine Station nicht an der Linie hängen bleibt. */
   S.map.createPane('linesPane').style.zIndex = 390;
   S.layers.lines = L.layerGroup().addTo(S.map);
+  S.layers.cover = L.layerGroup().addTo(S.map);
   S.layers.area = L.layerGroup().addTo(S.map);
   S.layers.edges = L.layerGroup().addTo(S.map);
   S.layers.marks = L.layerGroup().addTo(S.map);
@@ -1996,10 +2001,67 @@ function initMap() {
     if (S.showDiv.d2 || S.showDiv.d3) drawDivisions();
     if (S.showLines) drawLines();
   });
+  /* Abdeckung nach jedem Verschieben neu prüfen — mit Verzögerung, weil der
+     Service Worker die gerade geladenen Kacheln erst danach gespeichert hat. */
+  S.map.on('moveend', () => {
+    if (!S.showCover) return;
+    clearTimeout(S._coverT);
+    S._coverT = setTimeout(drawCoverage, 1500);
+  });
   drawArea();
   drawDivisions();
   drawLines();
+  drawCoverage();
   fitArea();
+}
+
+/* ---------- Kartenabdeckung (Runde 34) ----------
+   Zeigt orange, welche Kacheln des Spielgebiets auf der gewählten Zoomstufe
+   noch NICHT auf dem Handy liegen. Geladen wird nur, was man sich selbst
+   ansieht (OSM-Regeln: kein Vorab-Download) — die Anzeige hilft nur, die
+   Lücken gezielt anzusteuern. */
+const tileX = (lon, z) => Math.floor((lon + 180) / 360 * 2 ** z);
+const tileY = (lat, z) => {
+  const r = toRad(lat);
+  return Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * 2 ** z);
+};
+const tileLon = (x, z) => x / 2 ** z * 360 - 180;
+const tileLat = (y, z) => Math.atan(Math.sinh(Math.PI * (1 - 2 * y / 2 ** z))) * 180 / Math.PI;
+
+async function coverageStats() {
+  const z = S.coverZ, b = S.box;
+  const x0 = tileX(b.minX, z), x1 = tileX(b.maxX, z), y0 = tileY(b.maxY, z), y1 = tileY(b.minY, z);
+  const have = new Set();
+  try {
+    for (const req of await (await caches.open(TILE_CACHE)).keys()) {
+      const m = req.url.match(/\/(\d+)\/(\d+)\/(\d+)\.png/);
+      if (m && +m[1] === z) have.add(m[2] + '/' + m[3]);
+    }
+  } catch (e) { return null; }
+  const missing = [];
+  let total = 0;
+  for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
+    total++;
+    if (!have.has(x + '/' + y)) missing.push([x, y]);
+  }
+  return { z, total, missing };
+}
+
+async function drawCoverage() {
+  if (S.noMap || !S.layers.cover) return;
+  if (!S.showCover || !('caches' in self)) { S.layers.cover.clearLayers(); return; }
+  const st = await coverageStats();
+  S.layers.cover.clearLayers();
+  S.coverStat = st;
+  if (!st) return;
+  for (const [x, y] of st.missing) {
+    L.rectangle([[tileLat(y + 1, st.z), tileLon(x, st.z)], [tileLat(y, st.z), tileLon(x + 1, st.z)]], {
+      color: '#ea580c', weight: .5, opacity: .5, fillColor: '#f97316', fillOpacity: .28,
+      interactive: false,
+    }).addTo(S.layers.cover);
+  }
+  const el = document.getElementById('coverInfo');
+  if (el) el.textContent = (st.total - st.missing.length) + ' von ' + st.total + ' Kacheln';
 }
 
 /* ---------- Linien auf der Karte (Runde 26) ----------
@@ -3733,7 +3795,22 @@ function installGroupHtml() {
      Leeren. */
   const store = ('caches' in self)
     ? '<div class="catrow"><b>Gespeicherte Karte</b><span class="cnt" id="tileInfo">…</span>' +
-      '<button class="minibtn" id="tileClear">Leeren</button></div>'
+      '<button class="minibtn" id="tileClear">Leeren</button></div>' +
+      '<div class="catrow"><b>Kartenabdeckung zeigen</b>' +
+      '<button class="tgl" role="switch" aria-checked="' + !!S.showCover + '" id="coverShow" ' +
+      'aria-label="Noch nicht gespeicherte Kartenteile markieren"></button></div>' +
+      (S.showCover
+        ? '<div class="chips">' + [13, 14, 15].map((z) =>
+            '<button class="chip" data-cz="' + z + '" aria-pressed="' + (S.coverZ === z) + '">Zoom ' + z +
+            '</button>').join('') + '</div>' +
+          '<div class="note">Orange = noch nicht auf dem Handy. Im WLAN auf Zoomstufe ' +
+          S.coverZ + ' über die orangen Stellen wischen, dann verschwinden sie. ' +
+          '<span id="coverInfo"></span>' +
+          (S.map ? ' · Karte steht auf Zoom ' + S.map.getZoom() : '') +
+          (navigator.serviceWorker && !navigator.serviceWorker.controller
+            ? '<br>Speichern läuft erst, wenn die App über https geöffnet ist.' : '') +
+          '</div>'
+        : '')
     : '';
   return '<div class="group"><div class="grouphd">App</div>' + body + store + '</div>';
 }
@@ -3756,6 +3833,16 @@ async function showTileInfo(box) {
 
 function bindInstall(box) {
   showTileInfo(box);
+  const cv = box.querySelector('#coverShow');
+  if (cv) cv.onclick = () => { S.showCover = !S.showCover; save(); drawCoverage(); renderSetup(); };
+  box.querySelectorAll('[data-cz]').forEach((b) => {
+    b.onclick = () => { S.coverZ = +b.dataset.cz; save(); drawCoverage(); renderSetup(); };
+  });
+  if (S.showCover && S.coverStat) {
+    const el = box.querySelector('#coverInfo');
+    if (el) el.textContent = (S.coverStat.total - S.coverStat.missing.length) + ' von ' +
+      S.coverStat.total + ' Kacheln';
+  }
   const clr = box.querySelector('#tileClear');
   if (clr) clr.onclick = async () => {
     try { await caches.delete(TILE_CACHE); } catch (e) {}
@@ -4234,6 +4321,7 @@ function save() {
       home: S.home,
       hideRadiusM: S.hideRadiusM, hideKinds: S.hideKinds,
       showZones: S.showZones, showLines: S.showLines, showGain: S.showGain,
+      showCover: S.showCover, coverZ: S.coverZ,
       manual: [...S.manual], endgame: [...S.endgame], force: [...S.force], doubt: [...S.doubt],
       history: S.history.map((h) => ({ q: h.q, ans: h.ans, label: h.label, answerText: h.answerText, eg: !!h.eg })),
       disabled: Object.fromEntries(Object.entries(S.disabled).map(([k, v]) => [k, [...v]])),
@@ -4261,6 +4349,8 @@ function load() {
     if (typeof d.showZones === 'boolean') S.showZones = d.showZones;
     if (typeof d.showLines === 'boolean') S.showLines = d.showLines;
     if (typeof d.showGain === 'boolean') S.showGain = d.showGain;
+    if (typeof d.showCover === 'boolean') S.showCover = d.showCover;
+    if ([13, 14, 15].includes(d.coverZ)) S.coverZ = d.coverZ;
     // Stationsmarken sind Indizes. Hat sich die Stationsliste seit dem
     // Speichern geändert, zeigten sie auf falsche Stationen — dann verwerfen.
     if (d.nst === S.data.stations.length) {
@@ -4309,6 +4399,12 @@ function shareUrlFor(pt, name) {
   return base + '#' + sp.toString();
 }
 
+/** Nachrichtentext zum Teilen: Ort, Koordinaten und (optional) der Link. */
+function shareText(pt, url) {
+  return '📍 ' + placeName(pt) + '\n' + pt[1].toFixed(5) + ', ' + pt[0].toFixed(5) +
+    (url ? '\n' + url : '');
+}
+
 /** Dialog „Standort teilen": welche Position, dann Teilen-Menü oder Kopieren. */
 function showShareSheet() {
   const card = document.getElementById('sheetCard');
@@ -4351,10 +4447,15 @@ function showShareSheet() {
         : '') +
       '<input class="sel" id="shareUrl" readonly value="' + esc(url) + '">' +
       '<div class="note" id="shareMsg"></div>' +
-      '<div class="answers">' +
-      (navigator.share ? '<button class="ans yes" id="shareGo">Teilen …</button>' : '') +
-      '<button class="ans ' + (navigator.share ? 'no' : 'yes') + '" id="shareCopy">' +
-      'Link kopieren</button>' +
+      /* Runde 34: WhatsApp direkt (Ort, Koordinaten und Link in einer
+         Nachricht) und Koordinaten einzeln kopieren — die Zahl ist das, was die
+         andere Gruppe abtippt oder in die eigene App einfügt. */
+      '<div class="setgrid">' +
+      '<a class="btn" id="shareWa" target="_blank" rel="noopener" href="' +
+        esc('https://wa.me/?text=' + encodeURIComponent(shareText(sel.pt, url))) + '">WhatsApp</a>' +
+      (navigator.share ? '<button class="btn flat" id="shareGo">Teilen …</button>' : '') +
+      '<button class="btn flat" id="shareCoord">Koordinaten kopieren</button>' +
+      '<button class="btn flat" id="shareCopy">Link kopieren</button>' +
       '</div><button class="ghost" data-a="">Schließen</button>';
 
     const msg = card.querySelector('#shareMsg');
@@ -4363,19 +4464,22 @@ function showShareSheet() {
     });
     const go = card.querySelector('#shareGo');
     if (go) go.onclick = () => {
-      navigator.share({ title: 'Rheinjagd — Standort', text: placeName(sel.pt), url })
+      navigator.share({ title: 'Rheinjagd — Standort', text: shareText(sel.pt, null), url })
         .catch(() => { /* abgebrochen ist kein Fehler */ });
     };
-    card.querySelector('#shareCopy').onclick = async () => {
+    const copy = async (txt, what) => {
       const inp = card.querySelector('#shareUrl');
       try {
-        await navigator.clipboard.writeText(url);
-        msg.textContent = 'Kopiert — jetzt im Chat einfügen.';
+        await navigator.clipboard.writeText(txt);
+        msg.textContent = what + ' kopiert — jetzt im Chat einfügen.';
       } catch (e) {
-        inp.focus(); inp.select();
+        inp.value = txt; inp.focus(); inp.select();
         msg.textContent = 'Markiert — mit Strg/⌘+C kopieren.';
       }
     };
+    card.querySelector('#shareCopy').onclick = () => copy(url, 'Link');
+    card.querySelector('#shareCoord').onclick = () =>
+      copy(sel.pt[1].toFixed(5) + ', ' + sel.pt[0].toFixed(5), 'Koordinaten');
     card.querySelectorAll('[data-a]').forEach((b) => { b.onclick = closeSheet; });
   };
   render();
