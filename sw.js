@@ -13,13 +13,17 @@
  *  3. Kartenkacheln (tile.openstreetmap.org): Cache zuerst, im Hintergrund
  *     auffrischen. Gecacht wird nur, was man ohnehin angesehen hat — kein
  *     Vorab-Download (verbietet die OSM-Nutzungsrichtlinie). Höchstens
- *     3000 Kacheln (~40–60 MB), die ältesten fliegen zuerst raus.
+ *     4000 Kacheln (~50–80 MB), die ältesten fliegen zuerst raus.
+ *     Fehlt offline eine Kachel, wird sie aus einer gespeicherten gröberen
+ *     Kachel (bis 4 Stufen höher) hochskaliert — unscharf statt leer
+ *     (Runde 35). Diese Ersatzkacheln werden nicht gespeichert.
  */
 const APP = 'rheinjagd-app-v2';
 // Name wird auch in der App benutzt (Einstellungen → Kartenspeicher leeren).
 const LIB = 'rheinjagd-lib-v1';
 const TILES = 'rheinjagd-tiles-v1';
-const TILE_MAX = 3000;
+const TILE_MAX = 4000;
+const FALLBACK_UP = 4;
 const NET_WAIT_MS = 3000;
 
 self.addEventListener('install', () => self.skipWaiting());
@@ -91,7 +95,44 @@ async function tile(e, req) {
     return res;
   });
   if (hit) { e.waitUntil(net.catch(() => {})); return hit; }
-  return net;
+  try {
+    const res = await net;
+    if (res.ok) return res;
+    return (await coarser(cache, req.url)) || res;
+  } catch (err) {
+    const alt = await coarser(cache, req.url);
+    if (alt) return alt;
+    throw err;
+  }
+}
+
+/** Ersatz aus einer gespeicherten Vorfahren-Kachel: Ausschnitt hochskaliert. */
+async function coarser(cache, url) {
+  const m = /\/(\d+)\/(\d+)\/(\d+)(\.png)/.exec(url);
+  if (!m || typeof OffscreenCanvas === 'undefined') return null;
+  const z = +m[1], x = +m[2], y = +m[3];
+  for (let d = 1; d <= FALLBACK_UP && d <= z; d++) {
+    const n = 1 << d, px = x >> d, py = y >> d;
+    const up = new URL(url.replace(m[0], '/' + (z - d) + '/' + px + '/' + py + m[4]));
+    let hit = null;
+    // Leaflet verteilt die Kacheln auf a./b./c. — die gröbere kann unter jedem liegen.
+    for (const h of ['a.', 'b.', 'c.', '']) {
+      up.hostname = h + 'tile.openstreetmap.org';
+      if ((hit = await cache.match(up.href))) break;
+    }
+    if (!hit) continue;
+    try {
+      const img = await createImageBitmap(await hit.blob());
+      const size = img.width / n;
+      const c = new OffscreenCanvas(256, 256);
+      const g = c.getContext('2d');
+      g.imageSmoothingEnabled = true;
+      g.drawImage(img, (x - px * n) * size, (y - py * n) * size, size, size, 0, 0, 256, 256);
+      const blob = await c.convertToBlob({ type: 'image/png' });
+      return new Response(blob, { headers: { 'Content-Type': 'image/png' } });
+    } catch (_) { return null; }
+  }
+  return null;
 }
 
 let trimming = false;

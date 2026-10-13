@@ -23,9 +23,11 @@ aus.
 - **Karte:** Linien in KVB-Farben, Stations- und Versteckzonen, Grenzen,
   Orte; Stationen von Hand ausschließen, „unwahrscheinlich“ markieren,
   „trotzdem möglich lassen“.
-- **Teilen:** Positions-Links zwischen den Gruppen, Live-Standort.
+- **Teilen:** Koordinaten teilen oder kopieren, wahlweise als Link, der die
+  Position direkt in der App öffnet; Live-Standort.
 - **Offline:** Installierbar (PWA). Die App selbst und bereits angesehene
-  Kartenkacheln liegen auf dem Handy.
+  Kartenkacheln liegen auf dem Handy. Fehlt offline eine Kachel, wird eine
+  gröbere hochskaliert (unscharf statt leer).
 
 ## Projektaufbau
 

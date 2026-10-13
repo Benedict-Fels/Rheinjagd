@@ -375,7 +375,6 @@ button{cursor:pointer;background:none;border:none}
 .btn.flat{background:var(--surface-2);color:var(--ink-2)}
 .btn.flat:hover{background:var(--line);filter:none}
 a.btn{display:flex;align-items:center;justify-content:center;text-decoration:none}
-#shareWa{background:#25d366;color:#fff}
 
 /* ===== Standortleiste ===== */
 .posbar{
@@ -610,7 +609,8 @@ const S = {
   geoAcc: 0,             // deren Genauigkeit in Metern
   geoCentered: false,    // erste Ortung zentriert die Karte, spätere nicht
   disabled: {},          // cat -> Set(index) abgeschalteter POIs
-  thermoFrom: null,
+  thermoFrom: null,      // Startmarke auf der Karte (laufendes Thermometer)
+  thermoRun: null,       // laufendes Thermometer {km, from:[lon,lat], t} — Runde 35
   home: { ...HOME_DEFAULT },   // Startpunkt (für Schnellwahl/Distanzangaben)
   box: null,                   // Spielgebiets-Rechteck {minX,maxX,minY,maxY} — aus data.play_box
   hideRadiusM: HIDE_RADIUS_M_DEFAULT,   // Versteckradius um Stationen
@@ -1615,7 +1615,7 @@ function evaluate(q) {
 
 /** Entfernung kurz: unter 1 km in Metern, darüber in Kilometern. */
 function fmtDist(km) {
-  return km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(2) + ' km';
+  return km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(2).replace('.', ',') + ' km';
 }
 
 /** Die zwei nächsten Orte einer Kategorie. Der zweite liefert den Abstand zur
@@ -1920,13 +1920,13 @@ function buildCatalog() {
 
   /* --- Thermometer --- */
   cat.push({
-    title: 'Thermometer', hint: 'Erst fahren, dann Endpunkt setzen',
+    title: 'Thermometer', hint: 'Antippen startet, nochmal antippen setzt den Endpunkt',
     items: THERMO_KM.map((km) => ({
       type: 'thermo', km, seeker: sk, needsSecond: true,
       name: fmtKm(km) + ' fahren',
-      sub: 'Startpunkt = aktuelle Position',
+      sub: 'Antippen zum Starten',
       ask: 'Nach <em>' + fmtKm(km) + '</em> Fahrt: wärmer oder kälter?',
-      ctx: () => 'Endpunkt als Koordinate eingeben',
+      ctx: () => 'Antippen zum Starten',
     })),
   });
 
@@ -3032,6 +3032,7 @@ function askCoords(opts) {
       : '') +
     '<div class="answers">' +
     '<button class="ans yes" id="coordOk">' + (o.okLabel || 'Position setzen') + '</button>' +
+    (o.extra ? '<button class="ans no" id="coordExtra">' + esc(o.extra.label) + '</button>' : '') +
     '</div><button class="ghost" data-a="">Abbrechen</button>';
 
   const input = card.querySelector('#coordIn');
@@ -3077,6 +3078,8 @@ function askCoords(opts) {
     closeSheet(); set(p);
   };
   card.querySelector('#coordOk').onclick = apply;
+  const ex = card.querySelector('#coordExtra');
+  if (ex) ex.onclick = () => { closeSheet(); o.extra.fn(); };
   input.onkeydown = (e) => { if (e.key === 'Enter') apply(); };
   card.querySelectorAll('[data-a]').forEach((b) => {
     b.onclick = () => { closeSheet(); if (o.onCancel) o.onCancel(); };
@@ -3324,7 +3327,12 @@ function renderAsk() {
          Zahlen nebeneinander wären nicht auseinanderzuhalten. „knapp" steht
          im Text, nicht nur in der Farbe. */
       let sub = q.ctx ? q.ctx() : q.sub;
-      if (ha) {
+      const run = q.type === 'thermo' && S.thermoRun && S.thermoRun.km === q.km;
+      if (run) {
+        sub = 'läuft · <span data-thermo-dist>' + thermoDistText() + '</span> — antippen für den Endpunkt';
+        gain = '<div class="gain"><span class="verdict near">aktiv</span></div>';
+        row.classList.add('running');
+      } else if (ha) {
         sub = esc(hideRowText(ha) + (ha.near ? ' · knapp' : ''));
         gain = '<div class="gain"><span class="verdict ' +
                (ha.near ? 'near' : (ha.ans === 'yes' || ha.ans === 'closer' ? 'yes' : 'no')) +
@@ -3356,26 +3364,63 @@ function toggleCollapsed(key) {
    „Mein Standort" schreibt die Ortung ins Feld, statt sie still zu übernehmen
    — so steht die Koordinate sichtbar da und lässt sich an die andere Gruppe
    schicken. Der Kartentipp bleibt als dritter Weg. */
-function askThermoEnd(q, from, done, onCancel) {
+function askThermoEnd(q, from, done, onCancel, extra) {
   const a = from || S.seeker;
+  const keep = S.thermoFrom;
   S.thermoFrom = a; renderMarks();
   const finish = (to) => {
-    S.thermoFrom = null; renderMarks();
+    S.thermoFrom = to ? null : keep; renderMarks();
     if (to) done(to); else if (onCancel) onCancel();
   };
   askCoords({
     title: 'Endpunkt nach ' + fmtKm(qKm(q)) + ' Fahrt',
-    cur: q.to || a, geo: true, map: true, okLabel: 'Endpunkt setzen',
-    set: finish, onCancel: () => finish(null),
+    // Vorbelegt mit der aktuellen Position — Ortung, sonst die Seeker-Position.
+    cur: q.to || S.geoPos || S.seeker || a, geo: true, map: true, okLabel: 'Endpunkt setzen',
+    set: finish, onCancel: () => finish(null), extra,
   });
+}
+
+/* ---------- Thermometer als laufender Vorgang (Runde 35, Bene) ----------
+   Erster Tipp: Startpunkt bestätigen (vorbelegt mit der Ortung bzw. der
+   Seeker-Position) — das Thermometer ist dann „aktiv", die Startmarke steht
+   auf der Karte und die Zeile zeigt die bisher zurückgelegte Luftlinie.
+   Zweiter Tipp: Endpunkt bestätigen, dann wärmer/kälter. Die Grenze ist die
+   Mittelsenkrechte zwischen Start und Ende — wie weit wirklich gefahren
+   wurde, spielt dafür keine Rolle. */
+function thermoCur() { return S.geoPos || S.seeker; }
+function thermoDistText() {
+  const r = S.thermoRun, c = thermoCur();
+  if (!r || !c) return '';
+  return fmtDist(distKm(r.from[0], r.from[1], c[0], c[1])) + ' von ' + fmtKm(r.km);
+}
+function updateThermoDist() {
+  document.querySelectorAll('[data-thermo-dist]').forEach((el) => { el.textContent = thermoDistText(); });
+}
+function startThermo(q) {
+  askCoords({
+    title: 'Thermometer ' + fmtKm(qKm(q)) + ' starten',
+    cur: thermoCur() || [S.home.x, S.home.y], geo: true, map: true, okLabel: 'Thermometer starten',
+    set: (p) => {
+      S.thermoRun = { km: q.km, from: p, t: Date.now() };
+      S.thermoFrom = p;
+      renderMarks(); renderAsk(); save();
+    },
+  });
+}
+function stopThermo() {
+  S.thermoRun = null; S.thermoFrom = null;
+  renderMarks(); renderAsk(); save();
 }
 
 /* ---------- Antwort-Dialog ---------- */
 async function openSheet(q) {
   if (q.type === 'thermo') {
-    const from = S.seeker;
+    const run = S.thermoRun;
+    if (!run || run.km !== q.km) { startThermo(q); return; }
+    const from = run.from;
     askThermoEnd(q, from, (to) => showSheet(
-      { ...q, from, to, realKm: distKm(from[0], from[1], to[0], to[1]) }, null));
+      { ...q, from, to, realKm: distKm(from[0], from[1], to[0], to[1]) }, null),
+      null, { label: 'Thermometer abbrechen', fn: stopThermo });
     return;
   }
   if (q.type === 'tentacle') {
@@ -3390,7 +3435,10 @@ function showSheet(q, ev) {
   const answers = ANSWER_SETS[q.type] || ['yes', 'no'];
   const ha = hideAnswer(q);
   let meta = q.ctx ? q.ctx(q) : '';
-  if (q.type === 'thermo') meta = 'Tatsächlich gefahren: ' + q.realKm.toFixed(2) + ' km';
+  if (q.type === 'thermo') {
+    meta = 'Luftlinie Start–Ende: ' + fmtDist(q.realKm) +
+      (q.realKm < qKm(q) ? ' — <b>kürzer als ' + fmtKm(qKm(q)) + '</b>' : '');
+  }
 
   let html =
     '<div class="qtitle" id="sheetTitle">' + q.ask + '</div>' +
@@ -3526,6 +3574,7 @@ function commit(q, ans) {
   if (q.type === 'tentacle' && ans !== 'none') {
     answerText = activePois(q.cat)[+ans]?.n || ans;
   }
+  if (q.type === 'thermo') { S.thermoRun = null; S.thermoFrom = null; renderMarks(); }
   S.history.push({
     q: { ...q }, ans, label, answerText, eg,
     before, after, grenz,
@@ -3800,7 +3849,7 @@ function installGroupHtml() {
       '<button class="tgl" role="switch" aria-checked="' + !!S.showCover + '" id="coverShow" ' +
       'aria-label="Noch nicht gespeicherte Kartenteile markieren"></button></div>' +
       (S.showCover
-        ? '<div class="chips">' + [13, 14, 15].map((z) =>
+        ? '<div class="chips">' + [13, 14, 15, 16].map((z) =>
             '<button class="chip" data-cz="' + z + '" aria-pressed="' + (S.coverZ === z) + '">Zoom ' + z +
             '</button>').join('') + '</div>' +
           '<div class="note">Orange = noch nicht auf dem Handy. Im WLAN auf Zoomstufe ' +
@@ -4321,7 +4370,7 @@ function save() {
       home: S.home,
       hideRadiusM: S.hideRadiusM, hideKinds: S.hideKinds,
       showZones: S.showZones, showLines: S.showLines, showGain: S.showGain,
-      showCover: S.showCover, coverZ: S.coverZ,
+      showCover: S.showCover, coverZ: S.coverZ, thermoRun: S.thermoRun,
       manual: [...S.manual], endgame: [...S.endgame], force: [...S.force], doubt: [...S.doubt],
       history: S.history.map((h) => ({ q: h.q, ans: h.ans, label: h.label, answerText: h.answerText, eg: !!h.eg })),
       disabled: Object.fromEntries(Object.entries(S.disabled).map(([k, v]) => [k, [...v]])),
@@ -4350,7 +4399,8 @@ function load() {
     if (typeof d.showLines === 'boolean') S.showLines = d.showLines;
     if (typeof d.showGain === 'boolean') S.showGain = d.showGain;
     if (typeof d.showCover === 'boolean') S.showCover = d.showCover;
-    if ([13, 14, 15].includes(d.coverZ)) S.coverZ = d.coverZ;
+    if ([13, 14, 15, 16].includes(d.coverZ)) S.coverZ = d.coverZ;
+    if (d.thermoRun && Array.isArray(d.thermoRun.from)) { S.thermoRun = d.thermoRun; S.thermoFrom = d.thermoRun.from; }
     // Stationsmarken sind Indizes. Hat sich die Stationsliste seit dem
     // Speichern geändert, zeigten sie auf falsche Stationen — dann verwerfen.
     if (d.nst === S.data.stations.length) {
@@ -4399,12 +4449,6 @@ function shareUrlFor(pt, name) {
   return base + '#' + sp.toString();
 }
 
-/** Nachrichtentext zum Teilen: Ort, Koordinaten und (optional) der Link. */
-function shareText(pt, url) {
-  return '📍 ' + placeName(pt) + '\n' + pt[1].toFixed(5) + ', ' + pt[0].toFixed(5) +
-    (url ? '\n' + url : '');
-}
-
 /** Dialog „Standort teilen": welche Position, dann Teilen-Menü oder Kopieren. */
 function showShareSheet() {
   const card = document.getElementById('sheetCard');
@@ -4429,8 +4473,8 @@ function showShareSheet() {
     const url = shareUrlFor(sel.pt, placeName(sel.pt));
     card.innerHTML =
       '<div class="qtitle" id="sheetTitle">Standort teilen</div>' +
-      '<div class="qmeta">Der Link enthält die Koordinaten. Wer ihn antippt, ' +
-      'bekommt die Position in der App angeboten.</div>' +
+      '<div class="qmeta">„Koordinaten teilen" schickt nur die Zahlen. Der Link ' +
+      'öffnet die Position direkt in der App.</div>' +
       '<div class="chips">' +
       opts.map((o) => '<button class="chip" data-k="' + o.k + '" aria-pressed="' +
         (o.k === sel.k) + '">' + esc(o.label) + '</button>').join('') +
@@ -4445,41 +4489,37 @@ function showShareSheet() {
           + Math.round(distKm(sel.pt[0], sel.pt[1], S.hide[0], S.hide[1]) * 1000)
           + ' m entfernt).</div>'
         : '') +
-      '<input class="sel" id="shareUrl" readonly value="' + esc(url) + '">' +
       '<div class="note" id="shareMsg"></div>' +
-      /* Runde 34: WhatsApp direkt (Ort, Koordinaten und Link in einer
-         Nachricht) und Koordinaten einzeln kopieren — die Zahl ist das, was die
-         andere Gruppe abtippt oder in die eigene App einfügt. */
-      '<div class="setgrid">' +
-      '<a class="btn" id="shareWa" target="_blank" rel="noopener" href="' +
-        esc('https://wa.me/?text=' + encodeURIComponent(shareText(sel.pt, url))) + '">WhatsApp</a>' +
-      (navigator.share ? '<button class="btn flat" id="shareGo">Teilen …</button>' : '') +
-      '<button class="btn flat" id="shareCoord">Koordinaten kopieren</button>' +
-      '<button class="btn flat" id="shareCopy">Link kopieren</button>' +
+      /* Runde 35 (Bene): „Teilen" schickt nur die Koordinaten, der Link ist
+         die zweite Wahl, Kopieren die dritte. Keine Link-Vorschau mehr. */
+      '<div class="setgrid one">' +
+      '<button class="btn" id="shareCoord">Koordinaten teilen</button>' +
+      '<button class="btn flat" id="shareLink">Link teilen</button>' +
+      '<button class="btn flat" id="shareCopy">Koordinaten kopieren</button>' +
       '</div><button class="ghost" data-a="">Schließen</button>';
 
     const msg = card.querySelector('#shareMsg');
     card.querySelectorAll('.chip[data-k]').forEach((b) => {
       b.onclick = () => { sel = opts.find((o) => o.k === b.dataset.k); render(); };
     });
-    const go = card.querySelector('#shareGo');
-    if (go) go.onclick = () => {
-      navigator.share({ title: 'Rheinjagd — Standort', text: shareText(sel.pt, null), url })
-        .catch(() => { /* abgebrochen ist kein Fehler */ });
-    };
+    const coords = sel.pt[1].toFixed(5) + ', ' + sel.pt[0].toFixed(5);
     const copy = async (txt, what) => {
-      const inp = card.querySelector('#shareUrl');
       try {
         await navigator.clipboard.writeText(txt);
         msg.textContent = what + ' kopiert — jetzt im Chat einfügen.';
       } catch (e) {
-        inp.value = txt; inp.focus(); inp.select();
-        msg.textContent = 'Markiert — mit Strg/⌘+C kopieren.';
+        msg.textContent = txt;   // Notlösung: zum Markieren anzeigen
       }
     };
-    card.querySelector('#shareCopy').onclick = () => copy(url, 'Link');
-    card.querySelector('#shareCoord').onclick = () =>
-      copy(sel.pt[1].toFixed(5) + ', ' + sel.pt[0].toFixed(5), 'Koordinaten');
+    // Ohne Teilen-Menü (Desktop-Browser) wird stattdessen kopiert.
+    const share = (data, txt, what) => {
+      if (!navigator.share) { copy(txt, what); return; }
+      navigator.share(data).catch(() => { /* abgebrochen ist kein Fehler */ });
+    };
+    card.querySelector('#shareCoord').onclick = () => share({ text: coords }, coords, 'Koordinaten');
+    card.querySelector('#shareLink').onclick = () =>
+      share({ title: 'Rheinjagd — Standort', url }, url, 'Link');
+    card.querySelector('#shareCopy').onclick = () => copy(coords, 'Koordinaten');
     card.querySelectorAll('[data-a]').forEach((b) => { b.onclick = closeSheet; });
   };
   render();
@@ -4577,6 +4617,7 @@ function toggleLive() {
         if (S.map) S.map.setView([S.geoPos[1], S.geoPos[0]], Math.max(S.map.getZoom(), 15));
       }
       renderMarks();
+      if (S.thermoRun) updateThermoDist();
     },
     () => {
       stopLive();
@@ -4798,7 +4839,7 @@ function boot() {
   document.getElementById('btnReset').onclick = () => {
     // Das Versteck gehört zur Runde, nicht zur Oberfläche: neue Runde,
     // neues Versteck.
-    S.history = []; S.seeker = null; S.hide = null; S.thermoFrom = null;
+    S.history = []; S.seeker = null; S.hide = null; S.thermoFrom = null; S.thermoRun = null;
     S.manual.clear(); S.endgame.clear(); S.force.clear(); S.doubt.clear();
     S.shared = null;
     cancelPicking();
