@@ -1527,9 +1527,36 @@ const tileY = (lat, z) => {
 const tileLon = (x, z) => x / 2 ** z * 360 - 180;
 const tileLat = (y, z) => Math.atan(Math.sinh(Math.PI * (1 - 2 * y / 2 ** z))) * 180 / Math.PI;
 
+/** Kacheln, die den Versteckradius einer Station berühren (Runde 37). Nur die
+    zählen für die Abdeckung — der Rest des Gebiets ist fürs Spiel egal.
+    Gemerkt je Zoom/Radius/Stationsarten; ~1.200 Kacheln auf Zoom 16 bei 500 m. */
+function stationTiles(z) {
+  const r = S.hideRadiusM / 1000;
+  const key = z + ':' + S.hideRadiusM + ':' + S.hideKinds.kvb + ':' + S.hideKinds.rail;
+  if (S._stTiles && S._stTiles.key === key) return S._stTiles.list;
+  const seen = new Set(), list = [];
+  for (const s of S.stations) {
+    if (!kindOk(s)) continue;
+    const kx = 111.32 * Math.cos(s.y * Math.PI / 180), ky = 110.574;
+    const dLon = r / kx, dLat = r / ky;
+    for (let x = tileX(s.x - dLon, z); x <= tileX(s.x + dLon, z); x++) {
+      for (let y = tileY(s.y + dLat, z); y <= tileY(s.y - dLat, z); y++) {
+        const id = x + '/' + y;
+        if (seen.has(id)) continue;
+        // nächster Punkt der Kachel zur Station
+        const px = Math.min(Math.max(s.x, tileLon(x, z)), tileLon(x + 1, z));
+        const py = Math.min(Math.max(s.y, tileLat(y + 1, z)), tileLat(y, z));
+        if (Math.hypot((px - s.x) * kx, (py - s.y) * ky) > r) continue;
+        seen.add(id); list.push([x, y]);
+      }
+    }
+  }
+  S._stTiles = { key, list };
+  return list;
+}
+
 async function coverageStats() {
-  const z = S.coverZ, b = S.box;
-  const x0 = tileX(b.minX, z), x1 = tileX(b.maxX, z), y0 = tileY(b.maxY, z), y1 = tileY(b.minY, z);
+  const z = S.coverZ;
   const have = new Set();
   try {
     for (const req of await (await caches.open(TILE_CACHE)).keys()) {
@@ -1537,13 +1564,9 @@ async function coverageStats() {
       if (m && +m[1] === z) have.add(m[2] + '/' + m[3]);
     }
   } catch (e) { return null; }
-  const missing = [];
-  let total = 0;
-  for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
-    total++;
-    if (!have.has(x + '/' + y)) missing.push([x, y]);
-  }
-  return { z, total, missing };
+  const want = stationTiles(z);
+  const missing = want.filter(([x, y]) => !have.has(x + '/' + y));
+  return { z, total: want.length, missing };
 }
 
 async function drawCoverage() {
@@ -3352,10 +3375,9 @@ function installGroupHtml() {
         ? '<div class="chips">' + [13, 14, 15, 16].map((z) =>
             '<button class="chip" data-cz="' + z + '" aria-pressed="' + (S.coverZ === z) + '">Zoom ' + z +
             '</button>').join('') + '</div>' +
-          '<div class="note">Orange = noch nicht auf dem Handy. Im WLAN auf Zoomstufe ' +
-          S.coverZ + ' über die orangen Stellen wischen, dann verschwinden sie. ' +
-          '<span id="coverInfo"></span>' +
-          (S.map ? ' · Karte steht auf Zoom ' + S.map.getZoom() : '') +
+          '<div class="note">Orange = Kacheln im Versteckradius um die Stationen, die noch ' +
+          'nicht auf dem Handy sind. Im WLAN auf Zoomstufe ' + S.coverZ +
+          ' darüber wischen, dann verschwinden sie. <span id="coverInfo"></span>' +
           (navigator.serviceWorker && !navigator.serviceWorker.controller
             ? '<br>Speichern läuft erst, wenn die App über https geöffnet ist.' : '') +
           '</div>'
@@ -3565,6 +3587,7 @@ function changeArea(patch) {
   recompute();
   renderSetup();
   drawArea();
+  drawCoverage();
   if (S.map) fitArea();
 }
 
