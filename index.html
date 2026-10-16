@@ -307,6 +307,11 @@ button{cursor:pointer;background:none;border:none}
 .ans small{font-family:var(--f-ui);font-size:11px;font-weight:400;letter-spacing:0;
   text-transform:none;color:var(--muted);font-variant-numeric:tabular-nums}
 .ans.no{color:var(--exclude)}.ans.yes{color:var(--keep)}
+.ans.hide{color:var(--hide-ui)}
+.coordrow{display:flex;gap:8px;align-items:stretch}
+.coordrow .sel{flex:1;min-width:0}
+.coordrow .minibtn{flex:none}
+.qposbtn{width:100%;font-variant-numeric:tabular-nums}
 .sel{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;
   background:var(--surface-2);font-size:14px}
 .ghost{padding:9px;border-radius:8px;color:var(--muted);font-size:13px;text-align:center}
@@ -2259,6 +2264,7 @@ function drawArea() {
   const warn = cv('--warn', '#b06f16');      // unwahrscheinlich
   const egCol = cv('--exclude', '#c0392b');  // Endgame
   const dead = cv('--muted', '#8a8a8a');
+  const hideCol = cv('--hide', '#be185d');   // Station, auf der das Versteck liegt
 
   /* Stationen und ihre Versteckradien — ein gemeinsamer Schalter. Im Zentrum
      überlappen sich die Zonen stark, die Umrisse zeigen, welche Station
@@ -2266,13 +2272,24 @@ function drawArea() {
   if (S.showZones) {
     const w = zoneWeight();
     const g = dotGrow();
+    let hideS = null;
     for (const s of liveStations()) {
+      if (isHideStation(s)) { hideS = s; continue; }
       const dz = S.doubt.has(s.i) && !S.endgame.has(s.i);
       L.circle([s.y, s.x], {
         radius: S.hideRadiusM,
         color: S.endgame.has(s.i) ? egCol : dz ? warn : zone,
         weight: w, opacity: .85, fill: false, interactive: false,
         dashArray: dz ? '6 5' : null,
+      }).addTo(S.layers.area);
+    }
+    /* Versteckstation zuletzt, damit ihr Kreis über den anderen liegt — auch
+       wenn sie selbst schon ausgeschlossen ist. */
+    if (!hideS) hideS = hideStations().find(isHideStation) || null;
+    if (hideS) {
+      L.circle([hideS.y, hideS.x], {
+        radius: S.hideRadiusM, color: hideCol, weight: w + 1, opacity: .95,
+        fillColor: hideCol, fillOpacity: .08, interactive: false,
       }).addTo(S.layers.area);
     }
 
@@ -2282,12 +2299,15 @@ function drawArea() {
       const live = stationLive(s);
       const eg = S.endgame.has(s.i);
       const dz = live && !eg && S.doubt.has(s.i);
-      const col = eg ? egCol : dz ? warn : (live ? zone : dead);
+      const hs = isHideStation(s);
+      const col = hs ? hideCol : eg ? egCol : dz ? warn : (live ? zone : dead);
+      const big = eg || hs;
       L.circleMarker([s.y, s.x], {
-        radius: (eg ? 5 : (live ? 4 : 2.5)) + (live || eg ? g : 0),
-        color: col, weight: eg ? 2 : 1.5, opacity: live ? 1 : .5,
-        fillColor: col, fillOpacity: live ? .9 : .3, interactive: true,
-      }).bindTooltip(esc(s.n) + (eg ? ' · Endgame' : dz ? ' · unwahrscheinlich' : (live ? '' : ' · raus')),
+        radius: (big ? 5 : (live ? 4 : 2.5)) + (live || big ? g : 0),
+        color: col, weight: big ? 2 : 1.5, opacity: live || hs ? 1 : .5,
+        fillColor: col, fillOpacity: live || hs ? .9 : .3, interactive: true,
+      }).bindTooltip(esc(s.n) + (hs ? ' · Versteck' : '') +
+                     (eg ? ' · Endgame' : dz ? ' · unwahrscheinlich' : (live ? '' : ' · raus')),
                      { direction: 'top', offset: [0, -4] })
         .on('click', (e) => { L.DomEvent.stop(e); openStationSheet(s); })
         .addTo(S.layers.area);
@@ -2371,6 +2391,7 @@ function openStationSheet(s) {
   const forced = S.force.has(s.i);
   const manual = S.manual.has(s.i);
   const doubt = S.doubt.has(s.i);
+  const hideHere = isHideStation(s);
   const state = manual ? 'von Hand ausgeschlossen'
     : eg ? 'Endgame läuft hier'
     : egActive() ? 'ausgegraut — Endgame läuft woanders'
@@ -2383,6 +2404,8 @@ function openStationSheet(s) {
     '<div class="qmeta">' + kindLabel(s) +
     ' · ' + state + ' · ' + s.y.toFixed(5) + ', ' + s.x.toFixed(5) + '</div>' +
     '<div class="answers">' +
+    '<button class="ans hide" id="stHide">' +
+    (hideHere ? 'Versteck entfernen' : 'Versteck hier setzen') + '</button>' +
     '<button class="ans ' + (eg ? 'no' : 'yes') + '" id="stEnd">' +
     (eg ? 'Endgame beenden' : 'Endgame hier starten') + '</button>' +
     '<button class="ans ' + (doubt ? 'yes' : 'no') + '" id="stDoubt">' +
@@ -2396,19 +2419,14 @@ function openStationSheet(s) {
         (forced ? 'Doch ausschließen' : 'Trotzdem möglich lassen') + '</button>'
       : '') +
     '</div>' +
-    '<div class="note"><b>Endgame:</b> alle anderen Stationen werden ausgegraut. Ab ' +
-    'jetzt bewegt sich das Versteck nicht mehr; Fragen beziehen sich auf seine ' +
-    'genaue Position und schneiden die Zone selbst zu.<br>' +
-    '<b>Unwahrscheinlich:</b> ihr haltet die Station für eher raus — etwa nach ' +
-    'einer Fotofrage —, seid euch aber nicht sicher. Sie wird gelb markiert; ' +
-    'Fragen schließen sie weiterhin ganz normal aus.' +
-    (forced || S.killed[s.i]
-      ? '<br><b>Trotzdem möglich lassen:</b> wenn ihr dem Ausschluss nicht traut ' +
-        '— etwa bei einer Station direkt an einer Grenze.'
-      : '') + '</div>' +
     '<button class="ghost" data-a="">Schließen</button>';
 
   const only = (set) => { for (const x of [S.manual, S.endgame, S.force]) if (x !== set) x.delete(s.i); };
+  card.querySelector('#stHide').onclick = () => {
+    closeSheet();
+    if (hideHere) { S.hide = null; renderMarks(); drawArea(); renderAsk(); save(); }
+    else setHide([s.x, s.y], false);
+  };
   card.querySelector('#stManual').onclick = () => {
     if (manual) S.manual.delete(s.i); else { only(S.manual); S.manual.add(s.i); S.doubt.delete(s.i); }
     closeSheet(); afterStationChange();
@@ -2819,7 +2837,13 @@ function setSeeker(pt, center) {
 function setHide(pt, center) {
   S.hide = pt;
   if (center && S.map) S.map.setView([pt[1], pt[0]], Math.max(S.map.getZoom(), 13));
-  renderMarks(); renderAsk(); save();
+  renderMarks(); drawArea(); renderAsk(); save();
+}
+
+/** Liegt das Versteck genau auf Station `s`? (Bene: Station und
+    Radius bekommen dann die Versteckfarbe.) */
+function isHideStation(s) {
+  return !!S.hide && Math.abs(S.hide[0] - s.x) < 1e-7 && Math.abs(S.hide[1] - s.y) < 1e-7;
 }
 
 /** Versteck per Kartentipp setzen. */
@@ -3057,8 +3081,11 @@ function askCoords(opts) {
     '<div class="qmeta">Koordinaten oder ein eingefügter Link — Rheinjagd, ' +
     'Google Maps, Apple Karten, OpenStreetMap, <code>geo:</code>. Auch ' +
     '<code>50°56\'31"N 6°57\'30"E</code> geht.</div>' +
+    '<div class="coordrow">' +
     '<input class="sel" id="coordIn" inputmode="decimal" autocomplete="off" ' +
     'placeholder="50.94196, 6.95827" value="' + cur[1].toFixed(5) + ', ' + cur[0].toFixed(5) + '">' +
+    '<button class="minibtn" id="coordCopy" title="In die Zwischenablage">Kopieren</button>' +
+    '</div>' +
     '<div class="note" id="coordMsg"></div>' +
     /* Die Ortung schreibt ihre Koordinaten **ins Feld**, statt sie sofort zu
        übernehmen (Bene, Runde 21): so stehen sie sichtbar da, lassen sich
@@ -3078,6 +3105,19 @@ function askCoords(opts) {
   const input = card.querySelector('#coordIn');
   const msg = card.querySelector('#coordMsg');
   const fill = (p) => { input.value = p[1].toFixed(5) + ', ' + p[0].toFixed(5); input.select(); };
+  /* Kopieren direkt aus der Zeile (Bene): kopiert, was im Feld steht —
+     auch eine gerade übernommene Ortung, bevor sie gesetzt ist. */
+  const copyBtn = card.querySelector('#coordCopy');
+  copyBtn.onclick = async () => {
+    const txt = input.value.trim();
+    if (!txt) return;
+    try { await navigator.clipboard.writeText(txt); copyBtn.textContent = 'Kopiert'; }
+    catch (e) {
+      input.focus(); input.select();
+      msg.textContent = 'Markiert — mit Strg/⌘+C kopieren.';
+    }
+    setTimeout(() => { copyBtn.textContent = 'Kopieren'; }, 1800);
+  };
   const geoBtn = card.querySelector('#coordGeo');
   if (geoBtn) geoBtn.onclick = () => {
     if (S.geoPos) { fill(S.geoPos); msg.textContent = 'Ortung übernommen — ' +
@@ -3313,7 +3353,7 @@ function renderAsk() {
     hb.querySelector('#hMap').onclick = pickHide;
     tapOpen(hb.querySelector('#hInfo'), () => showPosSheet('hide'));
     hb.querySelector('#hCoord').onclick = askHideCoords;
-    hb.querySelector('#hOff').onclick = () => { S.hide = null; renderMarks(); renderAsk(); save(); };
+    hb.querySelector('#hOff').onclick = () => { S.hide = null; renderMarks(); drawArea(); renderAsk(); save(); };
   }
 
   const frag = document.createDocumentFragment();
@@ -3470,6 +3510,34 @@ async function openSheet(q) {
   showSheet(q, S.showGain ? evaluate(q) : null);
 }
 
+/**
+ * Knopf im Fragedialog, der zum selben Koordinaten-Dialog führt wie „Koord."
+ * in der Standortleiste (Bene). Nach dem Setzen (oder Abbrechen) öffnet sich
+ * die Frage wieder — neu berechnet für die neue Position.
+ */
+function seekerCoordBtn() {
+  return S.seeker
+    ? '<button class="btn flat qposbtn" id="qPos">Koordinaten · ' +
+      S.seeker[1].toFixed(5) + ', ' + S.seeker[0].toFixed(5) + '</button>'
+    : '';
+}
+function wireSeekerCoordBtn(card, q) {
+  const b = card.querySelector('#qPos');
+  if (!b) return;
+  const reopen = () => {
+    const same = (x) => x.type === q.type && x.name === q.name;
+    for (const grp of buildCatalog()) {
+      const nq = grp.items.find(same);
+      if (nq) { openSheet(nq); return; }
+    }
+  };
+  b.onclick = () => askCoords({
+    geo: true,
+    set: (p) => { setSeeker(p, true); reopen(); },
+    onCancel: reopen,
+  });
+}
+
 function showSheet(q, ev) {
   const card = document.getElementById('sheetCard');
   const answers = ANSWER_SETS[q.type] || ['yes', 'no'];
@@ -3482,7 +3550,8 @@ function showSheet(q, ev) {
 
   let html =
     '<div class="qtitle" id="sheetTitle">' + q.ask + '</div>' +
-    '<div class="qmeta">' + meta + '</div>';
+    '<div class="qmeta">' + meta + '</div>' +
+    (q.type === 'thermo' ? '' : seekerCoordBtn());
   /* Linie bzw. eigene Station wählen. Jede Änderung baut den Dialog mit der
      neuen Frage neu — Flächen, Stationszahlen und Verstecker-Antwort passen
      dann sofort. */
@@ -3518,6 +3587,7 @@ function showSheet(q, ev) {
   html += '</div><button class="ghost" data-a="">Abbrechen</button>';
   card.innerHTML = html;
 
+  wireSeekerCoordBtn(card, q);
   const sel = card.querySelector('#qChoice');
   if (sel) sel.onchange = () => {
     const nq = withChoice(q, sel.value);
@@ -3566,7 +3636,7 @@ function showTentacleSheet(q) {
   let html =
     '<div class="qtitle" id="sheetTitle">' + q.ask + '</div>' +
     '<div class="qmeta">' + reach.length + ' ' + CATS[q.cat].plural +
-    ' im Umkreis von ' + fmtKm(qKm(q)) + '</div>';
+    ' im Umkreis von ' + fmtKm(qKm(q)) + '</div>' + seekerCoordBtn();
 
   if (!reach.length) {
     html += '<div class="note">Keine ' + CATS[q.cat].plural +
@@ -3586,6 +3656,7 @@ function showTentacleSheet(q) {
   }
   card.innerHTML = html;
 
+  wireSeekerCoordBtn(card, q);
   const ok = card.querySelector('#tentOk');
   if (ok) ok.onclick = () => {
     const v = card.querySelector('#tentSel').value;
